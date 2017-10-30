@@ -18,3 +18,6 @@ The container can be build C source code.
 
 #### Stop the container
 1. Run ```docker-compose stop``` command.
+
+
+[about linux][http://hrb.osask.jp/wiki/?Linux/wako_memo]

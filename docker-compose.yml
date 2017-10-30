@@ -1,6 +1,6 @@
-cpp-baremetal:
+c-baremetal:
   build: "."
-  container_name: "cpp-baremetal"
+  container_name: "c-baremetal"
   working_dir: "/home/tetsuya"
   volumes:
     - ./shared:/home/tetsuya/shared

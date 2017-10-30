@@ -1,8 +1,8 @@
-# Docker C++ OS Project
+# Docker C OS Project
 
-### A Docker container for OS developing in C++.
+### A Docker container for OS developing in C.
 
-The container can be build C++ source code.
+The container can be build C source code.
 
 ### How to use this image?
 

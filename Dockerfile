@@ -17,7 +17,7 @@ RUN set -x && \
     apt-get install -y file && \
     apt-get install -y qemu && \
     apt-get install -y build-essential && \
-    apt-get install -y nkf
+    apt-get install -y nkf && \
 
 # add user and enable `sudo` command
 RUN set -x && \

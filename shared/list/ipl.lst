@@ -47,7 +47,7 @@
     47 00000073 7310                            JNC      next         ; エラーがおきなければnextへ
     48 00000075 83C601                          ADD      SI,1            ; SI(エラー回数)に1を足す
     49 00000078 83FE05                          CMP      SI,5            ; SIと5を比較
-    50 0000007B 733D                            JAE      error            ; エラー回数5回以上 だったらerrorへ
+    50 0000007B 7336                            JAE      error            ; エラー回数5回以上 だったらerrorへ
     51 0000007D B400                            MOV      AH,0x00
     52 0000007F B200                            MOV      DL,0x00         ; ドライブ番号 0->Aドライブ
     53 00000081 CD13                            INT      0x13           ; ドライブのリセット
@@ -67,45 +67,23 @@
     67 000000A0 80C501                          ADD      CH,1
     68 000000A3 80FD0A                          CMP      CH,CYLS
     69 000000A6 72BD                            JB       readloop     ; CH(シリンダ番号) < CYLS だったらreadloopへ
-    70 000000A8 EB0B                            JMP      success
-    71                                  
-    72                                  fin:
-    73 000000AA F4                              HLT                      ; 何かあるまでCPUを停止させる
-    74 000000AB C606F00F0A              				MOV			 BYTE [0x0ff0],CYLS
-    75 000000B0 E9(00C2)                				JMP			 0xc200						; osの開始メモリにジャンプ
-    76 000000B3 EBF5                            JMP      fin              ; 無限ループ
-    77                                  
-    78                                  success:
-    79 000000B5 BE[DD00]                        MOV      SI,msg2
-    80 000000B8 EB03                            JMP      putloop
-    81                                  
-    82                                  error:
-    83 000000BA BE[CF00]                        MOV      SI,msg
-    84                                  
-    85                                  putloop:
-    86 000000BD 8A04                            MOV      AL,[SI]
-    87 000000BF 83C601                          ADD      SI,1            ; SIに1を足す
-    88 000000C2 3C00                            CMP      AL,0
-    89 000000C4 74E4                            JE       fin
-    90 000000C6 B40E                            MOV      AH,0x0e         ; 一文字表示ファンクション
-    91 000000C8 BB0F00                          MOV      BX,15           ; カラーコード
-    92 000000CB CD10                            INT      0x10           ; ビデオBIOS呼び出し
-    93 000000CD EBEE                            JMP      putloop
-    94                                  
-    95                                  msg:
-    96 000000CF 0A0A                            DB       0x0a, 0x0a        ; 改行を2つ
-    97 000000D1 6C6F6164206572726F-             DB       "load error"
-    98 000000DA 72                 
-    99 000000DB 0A                              DB       0x0a           ; 改行
-   100 000000DC 00                              DB       0
-   101                                  
-   102                                  msg2:
-   103 000000DD 0A0A                            DB       0x0a, 0x0a        ; 改行を2つ
-   104 000000DF 6C6F61642073756363-             DB       "load success"
-   105 000000E8 657373             
-   106 000000EB 0A                              DB       0x0a           ; 改行
-   107 000000EC 00                              DB       0
-   108                                  
-   109 000000ED 00<rept>                        TIMES    0x7dfe-0x7c00-($-$$) DB 0     ; 0x7dfeまでを0x00で埋める命令
-   110                                  
-   111 000001FE 55AA                            DB       0x55, 0xaa    ;ブートセクタが有効であることを示す2バイト
+    70                                  
+    71                                  fin:
+    72 000000A8 F4                              HLT                      ; 何かあるまでCPUを停止させる
+    73 000000A9 C606F00F0A              				MOV			 BYTE [0x0ff0],CYLS
+    74 000000AE E9(00C2)                				JMP			 0xc200						; osの開始メモリにジャンプ
+    75 000000B1 EBF5                            JMP      fin              ; 無限ループ
+    76                                  
+    77                                  error:
+    78 000000B3 BE[B600]                        MOV      SI,msg
+    79                                  
+    80                                  msg:
+    81 000000B6 0A0A                            DB       0x0a, 0x0a        ; 改行を2つ
+    82 000000B8 6C6F6164206572726F-             DB       "load error"
+    83 000000C1 72                 
+    84 000000C2 0A                              DB       0x0a           ; 改行
+    85 000000C3 00                              DB       0
+    86                                  
+    87 000000C4 00<rept>                        TIMES    0x7dfe-0x7c00-($-$$) DB 0     ; 0x7dfeまでを0x00で埋める命令
+    88                                  
+    89 000001FE 55AA                            DB       0x55, 0xaa    ;ブートセクタが有効であることを示す2バイト

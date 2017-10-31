@@ -37,7 +37,7 @@ append :
 #	mcopy -i $(IMAGE)$(OS).img $(SYS)$(OS).sys
 
 run_os :
-	qemu-system-i386 -m 32 -localtime -curses -vga std -fda $(IMAGE)$(OS).img -monitor stdio
+	qemu-system-i386 -m 32 -localtime -vga std -fda $(IMAGE)$(OS).img -monitor stdio
 
 build :
 	make ipl
@@ -51,7 +51,7 @@ img : $(BIN)ipl.bin Makefile
 
 run_ipl :
 	make img
-	qemu-system-i386 -m 32 -localtime -curses -vga std -fda $(IMAGE)$(INPUT).img -monitor stdio
+	qemu-system-i386 -m 32 -localtime -vga std -fda $(IMAGE)$(INPUT).img -monitor stdio
 
 clean :
 	rm $(BIN)*

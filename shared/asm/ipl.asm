@@ -1,3 +1,4 @@
+CYLS  EQU      10             ; 読み込むシリンダ数
 ORG      0x7c00
 
 JMP      entry
@@ -21,7 +22,6 @@ JMP      entry
 	 DB       "FAT12   "     ; フォーマットの名前（8バイト）
 	 TIMES    18 DB 0            ; とりあえず18バイトあけておく
 
-CYLS  EQU      10             ; 読み込むシリンダ数
 entry:
         MOV      AX,0        ; レジスタ初期化
         MOV      SS,AX
@@ -67,14 +67,24 @@ next:
         CMP      CH,CYLS
         JB       readloop     ; CH(シリンダ番号) < CYLS だったらreadloopへ
 
-fin:
-        HLT                      ; 何かあるまでCPUを停止させる
-				MOV			 BYTE [0x0ff0],CYLS
-				JMP			 0xc200						; osの開始メモリにジャンプ
-        JMP      fin              ; 無限ループ
+				MOV		[0x0ff0],CH
+				JMP		0xc200
 
 error:
         MOV      SI,msg
+putloop:
+				MOV		AL,[SI]
+				ADD		SI,1			;
+				CMP		AL,0
+				JE		fin
+				MOV		AH,0x0e			;
+				MOV		BX,15			;
+				INT		0x10			;
+				JMP		putloop
+
+fin:
+        HLT                      ; 何かあるまでCPUを停止させる
+        JMP      fin              ; 無限ループ
 
 msg:
         DB       0x0a, 0x0a        ; 改行を2つ

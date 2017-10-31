@@ -10,7 +10,3 @@ void HariMain(void){
     io_hlt();
   }
 }
-
-void _start(void){
-  HariMain();
-}

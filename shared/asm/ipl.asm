@@ -70,6 +70,8 @@ next:
 
 fin:
         HLT                      ; 何かあるまでCPUを停止させる
+				MOV			 BYTE [0x0ff0],CYLS
+				JMP			 0xc200						; osの開始メモリにジャンプ
         JMP      fin              ; 無限ループ
 
 success:

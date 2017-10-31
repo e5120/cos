@@ -35,6 +35,11 @@ run :
 	make img
 	qemu-system-i386 -m 32 -localtime -curses -vga std -fda $(IMAGE)$(INPUT).img -monitor stdio
 
+run_os :
+	make os
+	qemu-system-i386 -m 32 -localtime -curses -vga std -fda $(IMAGE)$(OS_NAME).img -monitor stdio
+
+
 clean :
 	rm $(IMAGE)*
 	rm $(LIST)*

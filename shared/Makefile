@@ -25,7 +25,11 @@ func :
 	nasm -f elf32 $(ASM)asmfunc.asm -o $(OBJ)asmfunc.o
 
 gcc :
-	gcc -m32 -nostdlib -Wl,--oformat=binary $(OBJ)asmfunc.o $(SRC)bootpack.c -T os.lds -o $(BIN)bootpack.bin
+#	gcc -m32 $(SRC)bootpack.c -c -o $(OBJ)bootpack.o
+#	gcc -m32 $(SRC)hankaku.c -c -o $(OBJ)hankaku.o
+#	ld -m elf_i386 --oformat binary $(OBJ)asmfunc.o $(OBJ)hankaku.o $(OBJ)bootpack.o -T os.lds -o $(BIN)bootpack.bin
+
+	gcc -m32 -nostdlib -Wl,--oformat=binary $(OBJ)asmfunc.o $(SRC)bootpack.c $(SRC)hankaku.c -T os.lds -o $(BIN)bootpack.bin
 #	gcc -m32 -nostdlib -Wl,--oformat=binary $(OBJ)asmfunc.o $(SRC)bootpack.c -o $(BIN)bootpack.bin
 #	gcc -O2 -m32 -march=i686 -nostdlib -Wl,--oformat=binary $(SRC)bootpack.c $(OBJ)asmfunc.o -o $(BIN)bootpack.bin
 

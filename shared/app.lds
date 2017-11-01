@@ -1,4 +1,4 @@
-UTPUT_FORMAT("binary");
+OUTPUT_FORMAT("binary");
 
 SECTIONS
 {

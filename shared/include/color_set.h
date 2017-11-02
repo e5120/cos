@@ -1,3 +1,4 @@
+// VRAMで用いる色の設定番号
 #define COLOR_000000 0
 #define COLOR_FF0000 1
 #define COLOR_00FF00 2

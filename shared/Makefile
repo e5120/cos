@@ -1,65 +1,35 @@
-HOME = /home/tetsuya
-ASM = ./asm/
-BIN = ./bin/
-SYS = ./sys/
-IMAGE = ./image/
-SRC = ./src/
-LIST = ./list/
-OBJ = ./obj/
+MAKE = make --no-print-directory
 
-INPUT = cos
-OS = haribote
-BOOT = asmhead
+QEMU = qemu-system-i386
+QFLAGS = -m 32 -localtime -vga std -fda
+QFLAGS2 = -monitor stdio
 
-default :
-	make build
+ASMDIR = ./asm
+BINDIR = ./bin
+IMGDIR = ./image
+OBJDIR = ./obj
+SRCDIR = ./src
 
-ipl : $(ASM)ipl.asm Makefile
-	nasm -f bin $(ASM)ipl.asm -o $(BIN)ipl.bin -l $(LIST)ipl.lst
+TARGET = haribote.img
 
-boot :	$(ASM)$(BOOT).asm Makefile
-	nasm -f bin $(ASM)$(BOOT).asm -o $(BIN)$(BOOT).bin -l $(LIST)$(BOOT).lst
+all :	$(TARGET)
 
-func :
-#	nasm -f win32 $(ASM)asmfunc.asm -o $(OBJ)asmfunc.obj
-	nasm -f elf32 $(ASM)asmfunc.asm -o $(OBJ)asmfunc.o
+$(TARGET) :	assembly compile append
 
-gcc :
-#	gcc -m32 $(SRC)bootpack.c -c -o $(OBJ)bootpack.o
-#	gcc -m32 $(SRC)hankaku.c -c -o $(OBJ)hankaku.o
-#	ld -m elf_i386 --oformat binary $(OBJ)asmfunc.o $(OBJ)hankaku.o $(OBJ)bootpack.o -T os.lds -o $(BIN)bootpack.bin
-
-	gcc -m32 -nostdlib -Wl,--oformat=binary $(OBJ)asmfunc.o $(SRC)bootpack.c $(SRC)hankaku.c -T os.lds -o $(BIN)bootpack.bin
-#	gcc -m32 -nostdlib -Wl,--oformat=binary $(OBJ)asmfunc.o $(SRC)bootpack.c -o $(BIN)bootpack.bin
-#	gcc -O2 -m32 -march=i686 -nostdlib -Wl,--oformat=binary $(SRC)bootpack.c $(OBJ)asmfunc.o -o $(BIN)bootpack.bin
+assembly :
+	$(MAKE) -C $(ASMDIR)
 
 append :
-	cat $(BIN)$(BOOT).bin $(BIN)bootpack.bin > $(SYS)$(OS).sys
-	mformat -f 1440 -C -B $(BIN)ipl.bin -i $(IMAGE)$(OS).img ::
-	mcopy -i $(IMAGE)$(OS).img $(SYS)$(OS).sys ::
-#	mformat -f 1440 -l HARIBOTEOS -N 0xffffffff -C -B $(BIN)ipl.bin -i $(SYS)$(OS).sys
-#	mcopy -i $(IMAGE)$(OS).img $(SYS)$(OS).sys
+	$(MAKE) -C $(BINDIR)
 
-run_os :
-	qemu-system-i386 -m 32 -localtime -vga std -fda $(IMAGE)$(OS).img -monitor stdio
+compile :
+	$(MAKE) -C $(SRCDIR)
 
-build :
-	make ipl
-	make boot
-	make func
-	make gcc
-	make append
-
-img : $(BIN)ipl.bin Makefile
-	cat $(BIN)ipl.bin > $(IMAGE)$(INPUT).img
-
-run_ipl :
-	make img
-	qemu-system-i386 -m 32 -localtime -vga std -fda $(IMAGE)$(INPUT).img -monitor stdio
+run :
+	$(QEMU) $(QFLAGS) $(IMGDIR)/$(TARGET) $(QFLAGS2)
 
 clean :
-	rm $(BIN)*
-	rm $(IMAGE)*
-	rm $(LIST)*
-	rm $(OBJ)*
-	rm $(SYS)*
+	$(MAKE) -C $(ASMDIR) clean
+	$(MAKE) -C $(SRCDIR) clean
+	$(MAKE) -C $(BINDIR) clean
+

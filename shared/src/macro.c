@@ -1,4 +1,3 @@
-
 // ヌル文字で埋める
 void strcls(char *str) {
     while(*str != '\0') *str++ = '\0';

@@ -1,7 +1,7 @@
 MAKE = make --no-print-directory
 
 QEMU = qemu-system-i386
-QFLAGS = -m 32 -localtime -vga std -fda
+QFLAGS = -m 32 -localtime -vga std -fda 
 QFLAGS2 = -monitor stdio
 
 ASMDIR = ./asm

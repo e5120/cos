@@ -1,3 +1,7 @@
+#pragma once
+#include "address.h"
+#include "interrupt.h"
+
 // GDTの情報
 typedef struct SEGMENT_DESCRIPTION{
   short limit_low;

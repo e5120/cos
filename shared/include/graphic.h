@@ -1,3 +1,6 @@
+#pragma once
+#include "define.h"
+
 // プロトタイプ宣言
 void init_desktop(unsigned char* vram_addr, int screen_x, int screen_y);
 void init_palette(void);

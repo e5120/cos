@@ -1,3 +1,5 @@
+#pragma once
+
 // VRAMで用いる色の設定番号
 #define COLOR_000000 0
 #define COLOR_FF0000 1
@@ -15,3 +17,5 @@
 #define COLOR_840084 13
 #define COLOR_008484 14
 #define COLOR_848484 15
+
+#define MAX_BUF 32

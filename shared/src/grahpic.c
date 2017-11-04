@@ -1,6 +1,4 @@
-#include "../include/color_set.h"
 #include "../include/graphic.h"
-#include "../include/bootpack.h"
 
 #define COLOR 16
 
@@ -130,7 +128,7 @@ void init_mouse_cursor(char *mouse, char bc){
     "*ooooooo*.......",
     "*ooooooo*.......",
     "*oooooooo*......",
-    "*ooo**ooo*.....",
+    "*oooo*oooo*.....",
     "*ooo*..*ooo*....",
     "*oo*....*ooo*...",
     "*o*......*ooo*..",

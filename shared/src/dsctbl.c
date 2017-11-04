@@ -1,7 +1,4 @@
-#include "../include/bootpack.h"
 #include "../include/dsctbl.h"
-#include "../include/address.h"
-#include "../include/interrupt.h"
 
 void init_gdtidt(void){
   SEG_DESC* gdt = (SEG_DESC*)ADDR_GDT;

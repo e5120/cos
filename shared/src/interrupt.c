@@ -1,8 +1,6 @@
-#include "../include/bootpack.h"
 #include "../include/interrupt.h"
-#include "../include/address.h"
-#include "../include/graphic.h"
-#include "../include/color_set.h"
+
+#define PORT_KEYDATA  0x0060
 
 void init_pic(void){
   io_out8(PIC0_IMR, 0xff);    // 全割り込み受付不可
@@ -24,24 +22,25 @@ void init_pic(void){
   return;
 }
 
+FIFO k_fifo;
 // キーボードからの割り込み
 void interrupt_handler21(int *esp){
-  BOOT_INFO *binfo = (BOOT_INFO*)ADDR_BOOTINFO;
-  draw_rectangle((unsigned char*)binfo->vram, binfo->screen_x, COLOR_000000, 0, 0, 32*8 - 1, 15);
-  put_string(binfo->vram, binfo->screen_x, 0, 0, COLOR_FFFFFF, "INT 21 (IRQ-1):PS/2 keyboard");
-  for(;;){
-    io_hlt();
-  }
+  unsigned char data;
+  io_out8(PIC0_OCW2, 0x61);   //IRQ-01受付完了をPICに通知
+  data = io_in8(PORT_KEYDATA);
+  put_fifo(&k_fifo, data);
+  return;
 }
 
+FIFO m_fifo;
 // マウスからの割り込み
 void interrupt_handler2c(int *esp){
-  BOOT_INFO *binfo = (BOOT_INFO*)ADDR_BOOTINFO;
-  draw_rectangle((unsigned char*)binfo->vram, binfo->screen_x, COLOR_000000, 0, 0, 32*8 - 1, 15);
-  put_string(binfo->vram, binfo->screen_x, 0, 0, COLOR_FFFFFF, "INT 2C (IRQ-2):PS/2 mouse");
-  for(;;){
-    io_hlt();
-  }
+  unsigned char data;
+  io_out8(PIC1_OCW2, 0x64);
+  io_out8(PIC0_OCW2, 0x62);
+  data = io_in8(PORT_KEYDATA);
+  put_fifo(&m_fifo, data);
+  return;
 }
 
 void interrupt_handler27(int *esp){

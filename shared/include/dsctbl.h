@@ -1,6 +1,7 @@
 #pragma once
 #include "address.h"
 #include "interrupt.h"
+#include "asmfunc_def.h"
 
 // GDTの情報
 typedef struct SEGMENT_DESCRIPTION{

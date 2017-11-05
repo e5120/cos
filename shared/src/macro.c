@@ -8,7 +8,6 @@ void int2str(char *, int);
 void int2float(char *, int);
 void strcls(char *str);
 
-
 int lsprintf(char *str, const char *fmt, ...) {
 	int *arg = (int *)(&str + 2);	// 可変個引数の配列
 	int cnt;			// 生成した文字数
@@ -100,10 +99,17 @@ void int2dec(char *s, int value) {
 		return;
 	}
 
+	if(value < 0) {
+		s[0] = '-'; s+= 1;
+		value = -value;
+	}
+
 	for(i = 0; i < 10; i++) {
 		if(zero && figure(value, 10-i) != 0) zero = 0;
 		if(!zero) *s++ = '0' + figure(value, 10-i);
 	}
+
+	*s = '\0';
 }
 
 // 指定アドレスからバッファへの文字列のコピー(strcpyと同じ)

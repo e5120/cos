@@ -18,4 +18,6 @@
 #define COLOR_008484 14
 #define COLOR_848484 15
 
-#define MAX_BUF 32
+#define STR_MAX_BUF 32
+#define KEY_MAX_BUF 32
+#define MOUSE_MAX_BUF 128

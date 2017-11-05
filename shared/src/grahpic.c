@@ -46,7 +46,7 @@ VRAMについて
 左上の座標(0,0)、右下の座標(319,199)とすると、対応するVRAMのアドレスは、
 0xa0000 + x + y * 320となる。
 **/
-void draw_rectangle(unsigned char* vram_addr, int screen_width, unsigned char color,
+void draw_rectangle(char* vram_addr, int screen_width, unsigned char color,
                     int lx, int ly, int width, int height){
   int x,y;
   int index;
@@ -59,7 +59,7 @@ void draw_rectangle(unsigned char* vram_addr, int screen_width, unsigned char co
   return;
 }
 
-void set_background(unsigned char* vram_addr, int screen_x, int screen_y, unsigned char color){
+void set_background(char* vram_addr, int screen_x, int screen_y, unsigned char color){
   draw_rectangle(vram_addr, screen_x, color, 0, 0, screen_x, screen_y);
 }
 
@@ -92,7 +92,7 @@ void put_string(char* vram_addr, int screen_x, int x, int y, char color, char* s
 }
 
 
-void init_desktop(unsigned char* vram_addr, int screen_x, int screen_y){
+void init_desktop(char* vram_addr, int screen_x, int screen_y){
 
   // 四角形の描画
   // 当然、描画順を変えればVRAMの各要素の最終的な値が変わるため、描画結果も変わる

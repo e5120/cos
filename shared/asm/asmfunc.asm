@@ -7,6 +7,7 @@
   GLOBAL    load_gdtr,load_idtr
   GLOBAL    asm_interrupt_handler21,asm_interrupt_handler2c,asm_interrupt_handler27
   EXTERN    interrupt_handler21,interrupt_handler27,interrupt_handler2c
+  GLOBAL    load_cr0,store_cr0
 
 [SECTION .text]   ; オブジェクトファイルではコレを書いてからプログラム記述
 io_hlt :         ; void io_hlt(void);
@@ -133,3 +134,11 @@ asm_interrupt_handler2c :
   POP   ES
   IRETD
 
+load_cr0 :
+  MOV   EAX,CR0
+  RET
+
+store_cr0 :
+  MOV   EAX,[ESP+4];
+  MOV   CR0,EAX
+  RET

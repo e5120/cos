@@ -7,8 +7,12 @@ void HariMain(void){
   int mouse_x, mouse_y;
   int back_color;
   int i;
+
   BOOT_INFO* binfo = (BOOT_INFO*)ADDR_BOOTINFO;   // asmhead.asmでのBOOT_INFO先頭番地
   MOUSE_DEC mdec;
+
+  unsigned int memtotal;
+  MEM_MAN* memman = (MEM_MAN*)MEMMANAGER_ADDR;
 
   init_gdtidt();
   init_pic();
@@ -27,6 +31,17 @@ void HariMain(void){
   // 背景出力
   set_background(binfo->vram, binfo->screen_x, binfo->screen_y, back_color);
   init_desktop(binfo->vram, binfo->screen_x, binfo->screen_y);
+
+  // メモリチェック
+  i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
+  memtotal = memtest(0x00400000, 0xbfffffff);
+  memory_manager_init(memman);
+  memory_manager_free(memman, 0x00001000, 0x0009e000);
+  memory_manager_free(memman, 0x00400000, memtotal - 0x00400000);
+
+  lsprintf(str, "memory : %dMB    free:%dKB", memtotal/(1024*1024), memory_manager_total(memman)/1024);
+  put_string(binfo->vram, binfo->screen_x, 0, 32, COLOR_FFFFFF, str);
+
 
   // マウスカーソルの初期化・出力・割り込み許可
   init_mouse_cursor(mcursor, back_color);

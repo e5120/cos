@@ -6,8 +6,8 @@
 #include "address.h"
 #include "fifo.h"
 #include "io.h"
-#include "memory.h"
 #include "asmfunc_def.h"
+#include "layer.h"
 
 // asmhead.asmのBOOT_INFO参照
 typedef struct BOOT_INFOMATION{

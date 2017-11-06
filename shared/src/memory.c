@@ -48,7 +48,7 @@ not_memory:
   return i;
 }
 
-void memory_manager_init(MEM_MAN* man){
+void memory_manage_init(MEM_MAN* man){
   man->frees = 0;       // 空き情報
   man->maxfrees = 0;    // 状況観察用
   man->lostsize = 0;    // 解放に失敗した合計サイズ
@@ -56,7 +56,7 @@ void memory_manager_init(MEM_MAN* man){
   return;
 }
 
-unsigned int memory_manager_total(MEM_MAN* man){
+unsigned int memory_manage_total(MEM_MAN* man){
   unsigned int i, t = 0;
   for(i = 0; i < man->frees; ++i){
     t += man->free[i].size;
@@ -64,7 +64,7 @@ unsigned int memory_manager_total(MEM_MAN* man){
   return t;
 }
 
-unsigned int memory_manager_alloc(MEM_MAN* man, unsigned int size){
+unsigned int memory_manage_alloc(MEM_MAN* man, unsigned int size){
   unsigned int i, a;
   for(i = 0; i < man->frees; ++i){
     if(man->free[i].size >= size){
@@ -85,7 +85,7 @@ unsigned int memory_manager_alloc(MEM_MAN* man, unsigned int size){
   return 0;
 }
 
-int memory_manager_free(MEM_MAN* man, unsigned int addr, unsigned int size){
+int memory_manage_free(MEM_MAN* man, unsigned int addr, unsigned int size){
   // 解放
   int i, j;
   // アドレス順になるように解放する場所を決定
@@ -142,4 +142,17 @@ int memory_manager_free(MEM_MAN* man, unsigned int addr, unsigned int size){
   return -1;    // 失敗終了
 }
 
+unsigned int memory_manage_alloc_4k(MEM_MAN* man, unsigned int size){
+    unsigned int a;
+    size = (size + 0xfff) & 0xfffff000;
+    a = memory_manage_alloc(man, size);
+    return a;
+}
+
+int memory_manage_free_4k(MEM_MAN* man, unsigned int addr, unsigned int size){
+  int i;
+  size = (size + 0xfff) & 0xfffff000;
+  i = memory_manage_free(man, addr, size);
+  return i;
+}
 

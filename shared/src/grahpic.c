@@ -59,10 +59,6 @@ void draw_rectangle(char* vram_addr, int screen_width, unsigned char color,
   return;
 }
 
-void set_background(char* vram_addr, int screen_x, int screen_y, unsigned char color){
-  draw_rectangle(vram_addr, screen_x, color, 0, 0, screen_x, screen_y);
-}
-
 void put_font(char* vram_addr, int screen_x, int x, int y, char color, char* font){
   int i;
   char* p;
@@ -92,7 +88,8 @@ void put_string(char* vram_addr, int screen_x, int x, int y, char color, char* s
 }
 
 
-void init_desktop(char* vram_addr, int screen_x, int screen_y){
+void init_desktop(char* vram_addr, int screen_x, int screen_y, unsigned char color){
+  draw_rectangle(vram_addr, screen_x, color, 0, 0, screen_x, screen_y);
 
   // 四角形の描画
   // 当然、描画順を変えればVRAMの各要素の最終的な値が変わるため、描画結果も変わる

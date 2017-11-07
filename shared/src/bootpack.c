@@ -56,7 +56,7 @@ void HariMain(void){
   layer_updown(layer_ctl, layer_mouse, 1);
   lsprintf(str, "memory : %dMB    free:%dKB", memtotal/(1024*1024), memory_manage_total(memman)/1024);
   put_string((char*)buf_back, binfo->screen_x, 0, 32, COLOR_FFFFFF, str);
-  layer_refresh(layer_ctl);
+  layer_refresh(layer_ctl, layer_back, 0, 0, binfo->screen_x, 48);
 
   while(1){
     io_cli();
@@ -70,7 +70,7 @@ void HariMain(void){
         lsprintf(str, "%X", i);
         draw_rectangle((char*)buf_back, binfo->screen_x, back_color, 0, 16, 15, 15);
         put_string((char*)buf_back, binfo->screen_x, 0, 16, COLOR_FFFFFF, str);
-        layer_refresh(layer_ctl);
+        layer_refresh(layer_ctl,layer_back, 0, 16, 16, 32);
       }
       else if(fifo_status(&m_fifo)){
         i = get_fifo(&m_fifo);

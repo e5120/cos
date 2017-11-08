@@ -8,6 +8,7 @@
 #include "io.h"
 #include "asmfunc_def.h"
 #include "layer.h"
+#include "window.h"
 
 // asmhead.asmのBOOT_INFO参照
 typedef struct BOOT_INFOMATION{

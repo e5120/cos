@@ -52,7 +52,7 @@ void draw_rectangle(char* vram_addr, int screen_width, unsigned char color,
   int index;
   for(y = ly; y < ly+height; ++y){
     for(x = lx; x < lx+width; ++x){
-      index = x + y * 320;
+      index = x + y * screen_width;
       vram_addr[index] = color;
     }
   }

@@ -11,6 +11,7 @@ int load_cr0(void);
 void store_cr0(int cr0);
 void load_gdtr(short, int);
 void load_idtr(short, int);
+void asm_interrupt_handler20(void);
 void asm_interrupt_handler21(void);
 void asm_interrupt_handler27(void);
 void asm_interrupt_handler2c(void);

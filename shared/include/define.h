@@ -21,3 +21,4 @@
 #define STR_MAX_BUF 32
 #define KEY_MAX_BUF 32
 #define MOUSE_MAX_BUF 256
+#define TIMER_MAX_BUF 8

@@ -1,10 +1,11 @@
 #include "../include/bootpack.h"
 
 extern FIFO k_fifo, m_fifo;
+extern TIMER_CTL timer_ctl;
 
 void HariMain(void){
-  char str[STR_MAX_BUF], keybuf[KEY_MAX_BUF], mousebuf[MOUSE_MAX_BUF];
-  int mouse_x, mouse_y, i, counter = 0;
+  char str[STR_MAX_BUF], keybuf[KEY_MAX_BUF], mousebuf[MOUSE_MAX_BUF], timerbuf[TIMER_MAX_BUF];
+  int mouse_x, mouse_y, i;
   int back_color;
 
   BOOT_INFO* binfo = (BOOT_INFO*)ADDR_BOOTINFO;   // asmhead.asmでのBOOT_INFO先頭番地
@@ -17,6 +18,8 @@ void HariMain(void){
   LAYER *layer_back, *layer_mouse, *layer_window;
   unsigned char *buf_back, buf_mouse[MOUSE_MAX_BUF], *buf_window;
 
+  FIFO  timerfifo;
+
   init_gdtidt();
   init_pic();
   io_sti();
@@ -24,8 +27,12 @@ void HariMain(void){
   init_fifo(&k_fifo, KEY_MAX_BUF, keybuf);
   init_fifo(&m_fifo, MOUSE_MAX_BUF, mousebuf);
 
-  io_out8(PIC0_IMR, 0xf9);    // PIC1とキーボードを許可
+  init_pit();
+  io_out8(PIC0_IMR, 0xf8);    // PITとPIC1とキーボードを許可
   io_out8(PIC1_IMR, 0xef);    // マウスを許可
+
+  init_fifo(&timerfifo, TIMER_MAX_BUF, timerbuf);
+  settimer(300, &timerfifo, 1);
 
   init_keyboard();
   enable_mouse(&mdec);
@@ -35,6 +42,7 @@ void HariMain(void){
   memory_manage_init(memman);
   memory_manage_free(memman, 0x00001000, 0x0009e000);
   memory_manage_free(memman, 0x00400000, memtotal - 0x00400000);
+
 
   init_palette();
   // 背景色設定
@@ -67,14 +75,13 @@ void HariMain(void){
   layer_refresh(layer_back, 0, 0, binfo->screen_x, 48);
 
   while(1){
-    ++counter;
-    lsprintf(str, "%d", counter);
+    lsprintf(str, "%d", timer_ctl.count);
     draw_rectangle(buf_window, 160, COLOR_C6C6C6, 40, 28, 80, 16);
     put_string(buf_window, 160, 40, 28, COLOR_000000, str);
     layer_refresh(layer_window, 40, 28, 120, 44);
 
     io_cli();
-    if (!(fifo_status(&k_fifo) + fifo_status(&m_fifo))){
+    if (!(fifo_status(&k_fifo) + fifo_status(&m_fifo) + fifo_status(&timerfifo))){
       io_sti();
     }
     else{
@@ -119,6 +126,12 @@ void HariMain(void){
           }
           layer_slide(layer_mouse, mouse_x, mouse_y);
         }
+      }
+      else if(fifo_status(&timerfifo)){
+        i = get_fifo(&timerfifo);   // 空にするために読み込む
+        io_sti();
+        put_string(buf_back, binfo->screen_x, 0, 64, COLOR_FFFFFF, "10[sec]");
+        layer_refresh(layer_back, 0, 64, 56, 80);
       }
     }
   }

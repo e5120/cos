@@ -5,9 +5,11 @@
   GLOBAL    io_out8,io_out16,io_out32
   GLOBAL    io_load_eflags,io_store_eflags
   GLOBAL    load_gdtr,load_idtr
-  GLOBAL    asm_interrupt_handler21,asm_interrupt_handler2c,asm_interrupt_handler27
-  EXTERN    interrupt_handler21,interrupt_handler27,interrupt_handler2c
   GLOBAL    load_cr0,store_cr0
+  GLOBAL    asm_interrupt_handler20,asm_interrupt_handler21
+  GLOBAL    asm_interrupt_handler2c,asm_interrupt_handler27
+  EXTERN    interrupt_handler20,interrupt_handler21
+  EXTERN    interrupt_handler27,interrupt_handler2c
 
 [SECTION .text]   ; オブジェクトファイルではコレを書いてからプログラム記述
 io_hlt :         ; void io_hlt(void);
@@ -86,6 +88,22 @@ load_idtr :
   LIDT  [ESP+6]
   RET
 
+asm_interrupt_handler20 :
+  PUSH  ES
+  PUSH  DS
+  PUSHAD
+  MOV   EAX,ESP
+  PUSH  EAX
+  MOV   AX,SS
+  MOV   DS,AX
+  MOV   ES,AX
+  CALL  interrupt_handler20
+  POP   EAX
+  POPAD
+  POP   DS
+  POP   ES
+  IRETD
+
 asm_interrupt_handler21 :
   PUSH  ES
   PUSH  DS
@@ -142,3 +160,4 @@ store_cr0 :
   MOV   EAX,[ESP+4];
   MOV   CR0,EAX
   RET
+

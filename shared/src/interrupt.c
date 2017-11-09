@@ -1,6 +1,5 @@
 #include "../include/interrupt.h"
 
-#define PORT_KEYDATA  0x0060
 
 void init_pic(void){
   io_out8(PIC0_IMR, 0xff);    // 全割り込み受付不可
@@ -19,27 +18,6 @@ void init_pic(void){
   io_out8(PIC0_IMR, 0xfb);    // 11111011 PIC1以外は全て禁止
   io_out8(PIC1_IMR, 0xff);    // 11111111 全割り込み受付不可
 
-  return;
-}
-
-FIFO k_fifo;
-// キーボードからの割り込み
-void interrupt_handler21(int *esp){
-  unsigned char data;
-  io_out8(PIC0_OCW2, 0x61);   //IRQ-01受付完了をPICに通知
-  data = io_in8(PORT_KEYDATA);
-  put_fifo(&k_fifo, data);
-  return;
-}
-
-FIFO m_fifo;
-// マウスからの割り込み
-void interrupt_handler2c(int *esp){
-  unsigned char data;
-  io_out8(PIC1_OCW2, 0x64);
-  io_out8(PIC0_OCW2, 0x62);
-  data = io_in8(PORT_KEYDATA);
-  put_fifo(&m_fifo, data);
   return;
 }
 

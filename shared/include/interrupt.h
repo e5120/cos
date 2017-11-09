@@ -1,5 +1,4 @@
 #pragma once
-#include "fifo.h"
 #include "asmfunc_def.h"
 
 // 割り込み用PICの番号
@@ -17,6 +16,4 @@
 #define PIC1_ICW4       0x00a1
 
 void init_pic(void);
-void interrupt_handler21(int *esp);
-void interrupt_handler27(int *esp);
 void interrupt_handler2c(int *esp);

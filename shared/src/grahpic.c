@@ -164,3 +164,10 @@ void put_block(char* vram, int screen_x, int width, int height,
   }
   return;
 }
+
+void put_string_layer(LAYER* layer, int x, int y, int color, int back_color, char* str, int length){
+  draw_rectangle(layer->buf, layer->bxsize, back_color, x, y, 16 * length, 16);
+  put_string(layer->buf, layer->bxsize, x, y, color, str);
+  layer_refresh(layer, x, y, x + length * 16,y + 16);
+  return;
+}

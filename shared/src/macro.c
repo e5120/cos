@@ -117,3 +117,11 @@ void int2str(char *s, int value) {
 	char *p = (char *)value;
 	while(*p != '\0') *s++ = *p++;
 }
+
+unsigned int get_length(char* str){
+	int count = 0;
+	while(str[count] != '\0'){
+		++count;
+	}
+	return count;
+}

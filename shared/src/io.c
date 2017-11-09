@@ -9,7 +9,9 @@ void wait_KBC_sendready(void){
   return;
 }
 
-void init_keyboard(void){
+void init_keyboard(FIFO32* fifo, int data){
+  keyfifo = fifo;
+  keydata = data;
   wait_KBC_sendready();
   io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
   wait_KBC_sendready();
@@ -17,12 +19,33 @@ void init_keyboard(void){
   return;
 }
 
-void enable_mouse(MOUSE_DEC* mdec){
+// キーボードからの割り込み
+void interrupt_handler21(int *esp){
+  unsigned char data;
+  io_out8(PIC0_OCW2, 0x61);   //IRQ-01受付完了をPICに通知
+  data = io_in8(PORT_KEYDATA);
+  put_fifo32(keyfifo, data + keydata);
+  return;
+}
+
+void enable_mouse(FIFO32* fifo, int data, MOUSE_DEC* mdec){
+  mousefifo = fifo;
+  mousedata = data;
   wait_KBC_sendready();
   io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
   wait_KBC_sendready();
   io_out8(PORT_KEYDATA, MOUSECMD_ENABLE);
   mdec->phase = 0;
+  return;
+}
+
+// マウスからの割り込み
+void interrupt_handler2c(int *esp){
+  unsigned char data;
+  io_out8(PIC1_OCW2, 0x64);
+  io_out8(PIC0_OCW2, 0x62);
+  data = io_in8(PORT_KEYDATA);
+  put_fifo32(mousefifo, data + mousedata);
   return;
 }
 

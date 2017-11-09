@@ -4,7 +4,7 @@ extern FIFO k_fifo, m_fifo;
 extern TIMER_CTL timer_ctl;
 
 void HariMain(void){
-  char str[STR_MAX_BUF], keybuf[KEY_MAX_BUF], mousebuf[MOUSE_MAX_BUF], timerbuf[TIMER_MAX_BUF];
+  char str[STR_MAX_BUF], keybuf[KEY_MAX_BUF], mousebuf[MOUSE_MAX_BUF];
   int mouse_x, mouse_y, i;
   int back_color;
 
@@ -18,7 +18,9 @@ void HariMain(void){
   LAYER *layer_back, *layer_mouse, *layer_window;
   unsigned char *buf_back, buf_mouse[MOUSE_MAX_BUF], *buf_window;
 
-  FIFO  timerfifo;
+  char timerbuf[TIMER_MAX_BUF],timerbuf2[TIMER_MAX_BUF],timerbuf3[TIMER_MAX_BUF];
+  FIFO  timerfifo,timerfifo2,timerfifo3;
+  TIMER *timer,*timer2,*timer3;
 
   init_gdtidt();
   init_pic();
@@ -32,7 +34,17 @@ void HariMain(void){
   io_out8(PIC1_IMR, 0xef);    // マウスを許可
 
   init_fifo(&timerfifo, TIMER_MAX_BUF, timerbuf);
-  settimer(300, &timerfifo, 1);
+  init_fifo(&timerfifo2, TIMER_MAX_BUF, timerbuf2);
+  init_fifo(&timerfifo3, TIMER_MAX_BUF, timerbuf3);
+  timer  = timer_alloc();
+  timer2 = timer_alloc();
+  timer3 = timer_alloc();
+  init_timer(timer, &timerfifo, 1);
+  init_timer(timer2, &timerfifo2, 1);
+  init_timer(timer3, &timerfifo3, 1);
+  settimer(timer, 1000);
+  settimer(timer2, 300);
+  settimer(timer3, 50);
 
   init_keyboard();
   enable_mouse(&mdec);
@@ -81,7 +93,8 @@ void HariMain(void){
     layer_refresh(layer_window, 40, 28, 120, 44);
 
     io_cli();
-    if (!(fifo_status(&k_fifo) + fifo_status(&m_fifo) + fifo_status(&timerfifo))){
+    if (!(fifo_status(&k_fifo) + fifo_status(&m_fifo) + fifo_status(&timerfifo)
+          + fifo_status(&timerfifo2) + fifo_status(&timerfifo3))){
       io_sti();
     }
     else{
@@ -132,6 +145,26 @@ void HariMain(void){
         io_sti();
         put_string(buf_back, binfo->screen_x, 0, 64, COLOR_FFFFFF, "10[sec]");
         layer_refresh(layer_back, 0, 64, 56, 80);
+      }
+      else if(fifo_status(&timerfifo2)){
+        i = get_fifo(&timerfifo2);
+        io_sti();
+        put_string(buf_back, binfo->screen_x, 0, 80, COLOR_FFFFFF, "3[sec]");
+        layer_refresh(layer_back, 0, 80, 48, 96);
+      }
+      else if(fifo_status(&timerfifo3)){
+        i = get_fifo(&timerfifo3);
+        io_sti();
+        if(i != 0){
+          init_timer(timer3, &timerfifo3, 0);
+          draw_rectangle(buf_back, binfo->screen_x, COLOR_FFFFFF, 8, 96, 8, 16);
+        }
+        else{
+          init_timer(timer3, &timerfifo3, 1);
+          draw_rectangle(buf_back, binfo->screen_x, back_color, 8, 96, 8, 16);
+        }
+        settimer(timer3, 50);
+        layer_refresh(layer_back, 8, 96, 16, 112);
       }
     }
   }

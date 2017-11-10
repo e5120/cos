@@ -61,27 +61,27 @@ void int2char(char *s, int value) {
 // 数値を16進数文字列に変換する
 // flag: 大文字なら1, 小文字なら0
 void int2hex(char *s, int value, int flag) {
-	int zero		= 0;	// 0以外の桁が出たかどうか
-	int filter		= 0x0f;	// 16進数で1桁だけ抽出するフィルタ
-	int i;
-	// 16進数のアルファベット
-	char alphabet 	= flag ? 'A' : 'a';
+    int zero        = 0;    // 0以外の桁が出たかどうか
+    int filter      = 0x0f; // 16進数で1桁だけ抽出するフィルタ
+    int i, n;
+    // 16進数のアルファベット
+    char alphabet   = flag ? 'A' : 'a';
 
-	// 16進数はint型で最大8桁
-	for(i = 0; i < 8; i++) {
-		// 桁が10～15なら'A'～'F'に変換
-		if(((value >> (7-i)*4) & filter) >= 10) {
-			*s++ = alphabet + ((value >> (7-i)*4) & filter) - 10;
-		} else {
-			// 桁が0ではない、又は既に0以外の数字が上位の桁にある
-			// -> '0'～'9'に変換
-			if(!( ((value >> (7-i)*4) & filter) == 0 && !zero ))
-				*s++ = '0' + ((value >> (7-i)*4) & filter);
-		}
-	}
-	*s = '\0';
+    // 16進数はint型で最大8桁
+    for(i = 0; i < 8; i++) {
+        n = value >> (7-i)*4;
+        if(!zero && n != 0) zero = 1;   // 初めて0以外の桁が現れたとき
+        else if(!zero)      continue;   // 0以外の桁が現れていないとき
+        // 桁が10～15なら'A'～'F'に変換
+        if((n & filter) >= 10) {
+            *s++ = alphabet + (n & filter) - 10;
+        } else {
+            // '0'～'9'に変換
+            *s++ = '0' + (n & filter);
+        }
+    }
+    *s = '\0';
 }
-
 // 10進数valueのn桁目を返す
 int figure(int value, int n) {
 	int i;

@@ -4,7 +4,7 @@ extern TIMER_CTL timer_ctl;
 
 void HariMain(void){
   // デバッグ用
-  int count = 0;
+
   // boot関連 (asmhead.asmでのBOOT_INFO先頭番地)
   BOOT_INFO* binfo = (BOOT_INFO*)ADDR_BOOTINFO;
   // メモリ関連
@@ -19,6 +19,7 @@ void HariMain(void){
   // I/O関連
   int mouse_x, mouse_y;            // マウスの(x,y)座標
   MOUSE_DEC mdec;                  // マウスデコードの構造体
+  extern char keytable[];
   // 割り込み関連
   int i, fifobuf[FIFO_MAX_BUF];    // i：割り込み時の値保存
   TIMER *timer,*timer2,*timer3;    // タイマ用の構造体
@@ -83,23 +84,28 @@ void HariMain(void){
   put_string_layer(layer_back, 0, 32, COLOR_FFFFFF, back_color, str, get_length(str));
 
   while(1){
-    ++count;
-    lsprintf(str, "%d", timer_ctl.count);
-    put_string_layer(layer_window, 40, 28, COLOR_000000, COLOR_C6C6C6, str, 5);
-
+    // lsprintf(str, "%d", timer_ctl.count);
+    // put_string_layer(layer_window, 40, 28, COLOR_000000, COLOR_C6C6C6, str, 5);
     io_cli();
     if (!fifo_status32(&fifo)){
-      io_sti();
+      io_stihlt();
     }
     else{
       i = get_fifo32(&fifo);
       io_sti();
-      if(256 <= i && i < 512){
-        lsprintf(str, "%X", i);
-        put_string_layer(layer_back, 0, 16, COLOR_FFFFFF, back_color, str, 2);
+      if(KEY_BOTTOM <= i && i < KEY_TOP){
+        lsprintf(str, "%X", i - KEY_BOTTOM);
+        put_string_layer(layer_back, 0, 16, COLOR_FFFFFF, back_color, str, get_length(str));
+        if(i < KEY_BOTTOM + 0x54){
+          if(keytable[i - KEY_BOTTOM]){
+            str[0] = keytable[i - KEY_BOTTOM];
+            str[1] = '\0';
+            put_string_layer(layer_window, 40, 28, COLOR_000000, COLOR_C6C6C6, str, 1);
+          }
+        }
       }
-      else if(512 <= i && i < 768){
-        if(mouse_decode(&mdec, i - 512) != 0){
+      else if(MOUSE_BOTTOM <= i && i < MOUSE_TOP){
+        if(mouse_decode(&mdec, i - MOUSE_BOTTOM) != 0){
           lsprintf(str, "[lcr %d %d]", mdec.x, mdec.y);
           if(mdec.btn & 0x01){
             str[1] = 'L';
@@ -130,12 +136,9 @@ void HariMain(void){
       }
       else if(i == 10){
         put_string_layer(layer_back, 0, 64, COLOR_FFFFFF, back_color, "10[sec]", get_length("10[sec]"));
-        lsprintf(str, "%d", count);
-        put_string_layer(layer_back, 0, 150, COLOR_000000, back_color, str, get_length(str));
       }
       else if(i == 3){
         put_string_layer(layer_back , 0, 80, COLOR_FFFFFF, back_color, "3[sec]", get_length("3[sec]"));
-        count = 0;
       }
       else if(i == 1){
         init_timer(timer3, &fifo, 0);

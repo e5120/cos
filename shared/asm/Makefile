@@ -1,6 +1,7 @@
 NASM = nasm
 BFLAGS = -f bin
 OFLAGS = -f elf32
+#OFLAGS = -f win32
 
 BINDIR = ../bin
 LISTDIR = ../list
@@ -8,9 +9,9 @@ OBJDIR = ../obj
 
 ASM_FUNC = asmfunc
 
-all : *.asm func
+all : func asmhead.asm ipl.asm
 
-%.asm : Makefile
+%.asm :
 	$(NASM) $(BFLAGS) $*.asm -o $(BINDIR)/$*.bin -l $(LISTDIR)/$*.lst
 
 func :

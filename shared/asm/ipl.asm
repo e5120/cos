@@ -29,7 +29,6 @@ entry:
         MOV      DS,AX
 
 ; ディスクを読む
-
         MOV      AX,0x0820
         MOV      ES,AX         ; セグメントレジスタ(ES:BX)なのでメモリ上では0x8200
         MOV      CH,0        ; シリンダ番号

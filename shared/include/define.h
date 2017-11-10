@@ -23,3 +23,8 @@
 #define MOUSE_MAX_BUF 256
 #define TIMER_MAX_BUF 8
 #define FIFO_MAX_BUF 128
+
+#define KEY_BOTTOM 256
+#define KEY_TOP    512
+#define MOUSE_BOTTOM 512
+#define MOUSE_TOP  768

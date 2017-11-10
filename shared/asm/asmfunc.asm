@@ -11,6 +11,7 @@
   EXTERN    interrupt_handler20,interrupt_handler21
   EXTERN    interrupt_handler27,interrupt_handler2c
 
+
 [SECTION .text]   ; オブジェクトファイルではコレを書いてからプログラム記述
 io_hlt :         ; void io_hlt(void);
   HLT

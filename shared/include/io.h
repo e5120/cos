@@ -32,3 +32,13 @@ void interrupt_handler21(int *esp);
 void enable_mouse(FIFO32* fifo, int data, MOUSE_DEC* mdec);
 void interrupt_handler27(int *esp);
 int mouse_decode(MOUSE_DEC* mdec, unsigned char data);
+
+
+static char keytable[0x54] = {
+    0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[', 0, 0,
+    'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ':', 0, 0, ']',
+    'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 0, '*', 0, ' ',
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6',
+    '+', '1', '2', '3', '0', '_'
+};

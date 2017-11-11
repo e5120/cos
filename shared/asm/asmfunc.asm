@@ -10,6 +10,7 @@
   GLOBAL    asm_interrupt_handler2c,asm_interrupt_handler27
   EXTERN    interrupt_handler20,interrupt_handler21
   EXTERN    interrupt_handler27,interrupt_handler2c
+  GLOBAL    load_tr,farjmp
 
 
 [SECTION .text]   ; オブジェクトファイルではコレを書いてからプログラム記述
@@ -162,3 +163,10 @@ store_cr0 :
   MOV   CR0,EAX
   RET
 
+load_tr :
+  LTR   [ESP+4]
+  RET
+
+farjmp :
+  JMP   FAR [ESP+4]
+  RET

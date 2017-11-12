@@ -2,28 +2,33 @@
 
 extern TIMER_CTL timer_ctl;
 
-void task_b_main(void){
+void task_b_main(LAYER* layer_back){
   FIFO32 fifo;
-  TIMER* timer;
+  TIMER *timer_put;
   int i, fifobuf[128];
+  int count = 0;
+  char  str[STR_MAX_BUF];
 
   init_fifo32(&fifo, 128, fifobuf);
-  timer = timer_alloc();
-  init_timer(timer, &fifo, 1);
-  settimer(timer, 2);
+  timer_put = timer_alloc();
+  init_timer(timer_put, &fifo, 1);
+  settimer(timer_put, 100);
 
   while(1){
+    lsprintf(str, "%d", count);
+    put_string_layer(layer_back, 0, 144, COLOR_FFFFFF, COLOR_008484, str, get_length(str));
+    ++count;
     io_cli();
     if(!fifo_status32(&fifo)){
       io_sti();
-      io_hlt();
     }
     else{
       i = get_fifo32(&fifo);
       io_sti();
       if(i == 1){
-        farjmp(0, 3 * 8);
-        settimer(timer, 2);
+        lsprintf(str, "%d", count);
+        put_string_layer(layer_back, 0, 144, COLOR_FFFFFF, COLOR_008484, str, get_length(str));
+        settimer(timer_put, 100);
       }
     }
   }
@@ -50,7 +55,7 @@ void HariMain(void){
   extern char keytable[];
   // 割り込み関連
   int i, fifobuf[FIFO_MAX_BUF];    // i：割り込み時の値保存
-  TIMER *timer,*timer2,*timer3,*timer_ts;     // タイマ用の構造体
+  TIMER *timer,*timer2,*timer3;     // タイマ用の構造体
   FIFO32 fifo;
   // タスク関連
   SEG_DESC* gdt = (SEG_DESC*)ADDR_GDT;
@@ -79,8 +84,6 @@ void HariMain(void){
   timer3 = timer_alloc();
   init_timer(timer3, &fifo, 1);
   settimer(timer3, 50);
-  init_timer(timer_ts, &fifo, 2);
-  settimer(timer_ts, 2);
   // メモリチェック
   i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
   memtotal = memtest(0x00400000, 0xbfffffff);
@@ -117,7 +120,6 @@ void HariMain(void){
   lsprintf(str, "memory : %dMB    free:%dKB", memtotal/(1024*1024), memory_manage_total(memman)/1024);
   put_string_layer(layer_back, 0, 32, COLOR_FFFFFF, back_color, str, get_length(str));
 
-
   tss_a.ldtr = 0;
   tss_b.ldtr = 0;
   tss_a.iomap = 0x40000000;
@@ -125,7 +127,7 @@ void HariMain(void){
   set_segmdesc(gdt + 3, 103, (int)&tss_a, AR_TSS32);
   set_segmdesc(gdt + 4, 103, (int)&tss_b, AR_TSS32);
   load_tr(3 * 8);
-  task_b_esp = memory_manage_alloc_4k(memman, 64 * 1024) + 64 * 1024;
+  task_b_esp = memory_manage_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
   tss_b.eip = (int)&task_b_main;
   tss_b.eflags = 0x00000202;
   tss_b.eax = 0;
@@ -142,6 +144,8 @@ void HariMain(void){
   tss_b.ds = 1 * 8;
   tss_b.fs = 1 * 8;
   tss_b.gs = 1 * 8;
+  *((int*)(task_b_esp + 4)) = (int)layer_back;
+  mt_init();
 
   while(1){
     // lsprintf(str, "%d", timer_ctl.count);
@@ -206,11 +210,6 @@ void HariMain(void){
       }
       else if(i == 10){
         put_string_layer(layer_back, 0, 64, COLOR_FFFFFF, back_color, "10[sec]", get_length("10[sec]"));
-        farjmp(0, 4 * 8);
-      }
-      else if(i == 2){
-        farjmp(0, 4 * 8);
-        settimer(timer_ts, 2);
       }
       else if(i == 3){
         put_string_layer(layer_back , 0, 80, COLOR_FFFFFF, back_color, "3[sec]", get_length("3[sec]"));

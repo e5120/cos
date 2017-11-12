@@ -10,6 +10,7 @@
 #include "layer.h"
 #include "window.h"
 #include "timer.h"
+#include "mult_task.h"
 
 // asmhead.asmのBOOT_INFO参照
 typedef struct BOOT_INFOMATION{

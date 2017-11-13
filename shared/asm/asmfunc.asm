@@ -45,7 +45,6 @@ io_in16 :
 
 io_in32 :
   MOV   EDX,[ESP+4] ;port
-  MOV   EAX,0
   IN    EAX,DX
   RET
 

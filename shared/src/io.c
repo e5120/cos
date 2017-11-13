@@ -41,7 +41,7 @@ void enable_mouse(FIFO32* fifo, int data, MOUSE_DEC* mdec){
 
 // マウスからの割り込み
 void interrupt_handler2c(int *esp){
-  unsigned char data;
+  int data;
   io_out8(PIC1_OCW2, 0x64);
   io_out8(PIC0_OCW2, 0x62);
   data = io_in8(PORT_KEYDATA);
@@ -57,7 +57,7 @@ int mouse_decode(MOUSE_DEC* mdec, unsigned char data){
     }
     return 0;
   }
-  else if(mdec->phase == 1){
+  if(mdec->phase == 1){
     // 正しいデータか判定
     if((data & 0xc8) == 0x08){
       mdec->buf[0] = data;
@@ -65,12 +65,12 @@ int mouse_decode(MOUSE_DEC* mdec, unsigned char data){
     }
     return 0;
   }
-  else if(mdec->phase == 2){
+  if(mdec->phase == 2){
     mdec->buf[1] = data;
     mdec->phase = 3;
     return 0;
   }
-  else if(mdec->phase == 3){
+  if(mdec->phase == 3){
     mdec->buf[2] = data;
     mdec->phase = 1;
     mdec->btn = mdec->buf[0] & 0x07;

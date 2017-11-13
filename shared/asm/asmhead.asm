@@ -1,4 +1,4 @@
-;haribote-os;
+;haribote-os boot asm
 
 BOTPAK    EQU 0x00280000              ; bootpackのロード先
 DSKCAC    EQU 0x00100000              ; ディスクキャッシュの場所
@@ -51,9 +51,9 @@ VRAM  EQU   0x0ff8      ; グラフィックバッファの開始番地
   INT     0x10
   MOV     BYTE [VMODE],8    ; 画面モードをメモ
   MOV     AX,[ES:DI+0x12]
-  MOV     WORD [SCRNX],AX
+  MOV     [SCRNX],AX
   MOV     AX,[ES:DI+0x14]
-  MOV     WORD [SCRNY],AX
+  MOV     [SCRNY],AX
   MOV     EAX,[ES:DI+0x28]
   MOV     DWORD [VRAM],EAX
   JMP     keystatus
@@ -61,7 +61,6 @@ VRAM  EQU   0x0ff8      ; グラフィックバッファの開始番地
 ; 画面モード設定(初期設定)
 scrn320 :
   MOV     AL,0x13   ; VGAグラフィックス 320x200x8bit color
-
   MOV     AH,0x00
   INT     0x10
   MOV     BYTE [VMODE],8    ; 画面モードをメモ

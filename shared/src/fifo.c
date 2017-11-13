@@ -42,13 +42,14 @@ int fifo_status(FIFO* fifo){
   return fifo->size - fifo->free;
 }
 
-void init_fifo32(FIFO32* fifo, int size, int *buf){
+void init_fifo32(FIFO32* fifo, int size, int *buf, TASK* task){
   fifo->size = size;
   fifo->buf = buf;
   fifo->free = size;
   fifo->flags = 0;
   fifo->r_flag = 0;
   fifo->w_flag = 0;
+  fifo->task = task;
   return;
 }
 
@@ -63,6 +64,11 @@ int put_fifo32(FIFO32* fifo, int data){
     fifo->w_flag = 0;
   }
   --fifo->free;
+  if(fifo->task != 0){
+    if(fifo->task->flags != 2){
+      task_run(fifo->task);
+    }
+  }
   return 0;
 }
 

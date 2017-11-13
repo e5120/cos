@@ -1,33 +1,29 @@
 #include "../include/bootpack.h"
 
-extern TIMER_CTL timer_ctl;
-
-void task_b_main(LAYER* layer_back){
+void task_b_main(LAYER* layer_win_b){
   FIFO32 fifo;
   TIMER *timer_put;
   int i, fifobuf[128];
   int count = 0;
   char  str[STR_MAX_BUF];
 
-  init_fifo32(&fifo, 128, fifobuf);
+  init_fifo32(&fifo, 128, fifobuf, 0);
   timer_put = timer_alloc();
-  init_timer(timer_put, &fifo, 1);
+  init_timer(timer_put, &fifo, 100);
   settimer(timer_put, 100);
 
   while(1){
-    lsprintf(str, "%d", count);
-    put_string_layer(layer_back, 0, 144, COLOR_FFFFFF, COLOR_008484, str, get_length(str));
     ++count;
     io_cli();
     if(!fifo_status32(&fifo)){
-      io_sti();
+      io_stihlt();
     }
     else{
       i = get_fifo32(&fifo);
       io_sti();
-      if(i == 1){
+      if(i == 100){
         lsprintf(str, "%d", count);
-        put_string_layer(layer_back, 0, 144, COLOR_FFFFFF, COLOR_008484, str, get_length(str));
+        put_string_layer(layer_win_b, 24, 28, COLOR_FFFFFF, COLOR_008484, str, get_length(str));
         settimer(timer_put, 100);
       }
     }
@@ -44,8 +40,7 @@ void HariMain(void){
   MEM_MAN* memman = (MEM_MAN*)MEMMANAGER_ADDR;  // メモリ管理用構造体
   // レイヤー関連
   char str[STR_MAX_BUF];           // 画面表示用の文字列格納
-  int back_color, cursor_color;    // 背景色,カーソルの色
-  int cursor_x = 8;
+  int back_color, cursor_color, cursor_x;    // 背景色,カーソルの色
   unsigned char *buf_back, buf_mouse[MOUSE_MAX_BUF], *buf_window;
   LAYER_CTL* layer_ctl;
   LAYER *layer_back, *layer_mouse, *layer_window;
@@ -55,18 +50,18 @@ void HariMain(void){
   extern char keytable[];
   // 割り込み関連
   int i, fifobuf[FIFO_MAX_BUF];    // i：割り込み時の値保存
-  TIMER *timer,*timer2,*timer3;     // タイマ用の構造体
   FIFO32 fifo;
   // タスク関連
-  SEG_DESC* gdt = (SEG_DESC*)ADDR_GDT;
-  TSS32 tss_a, tss_b;
-  int task_b_esp;
+  unsigned char* buf_win_b;
+  LAYER* layer_win_b[3];
+  TASK   *task_a, *task_b[3];
+  TIMER* timer;
 
   init_gdtidt();
   init_pic();
   io_sti();
 
-  init_fifo32(&fifo, FIFO_MAX_BUF, fifobuf);
+  init_fifo32(&fifo, FIFO_MAX_BUF, fifobuf, 0);
 
   init_pit();
   // I/O初期化
@@ -74,16 +69,6 @@ void HariMain(void){
   enable_mouse(&fifo, 512, &mdec);
   io_out8(PIC0_IMR, 0xf8);    // PITとPIC1とキーボードを許可
   io_out8(PIC1_IMR, 0xef);    // マウスを許可
-  // タイマ設定
-  timer  = timer_alloc();
-  init_timer(timer, &fifo, 10);
-  settimer(timer, 1000);
-  timer2 = timer_alloc();
-  init_timer(timer2, &fifo, 3);
-  settimer(timer2, 300);
-  timer3 = timer_alloc();
-  init_timer(timer3, &fifo, 1);
-  settimer(timer3, 50);
   // メモリチェック
   i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
   memtotal = memtest(0x00400000, 0xbfffffff);
@@ -96,62 +81,71 @@ void HariMain(void){
   back_color = COLOR_008484;
   // レイヤー設定
   layer_ctl = layer_control_init(memman, (unsigned char*)binfo->vram, binfo->screen_x, binfo->screen_y);
+  task_a = task_init(memman);
+  fifo.task = task_a;
+
   layer_back = layer_alloc(layer_ctl);
-  layer_mouse = layer_alloc(layer_ctl);
-  layer_window = layer_alloc(layer_ctl);
   buf_back = (unsigned char*)memory_manage_alloc_4k(memman, binfo->screen_x * binfo->screen_y);
-  buf_window = (unsigned char*)memory_manage_alloc_4k(memman, 160 * 68);
   layer_setbuf(layer_back, buf_back, binfo->screen_x, binfo->screen_y, -1);
-  layer_setbuf(layer_mouse, buf_mouse, 16, 16, 99);
-  layer_setbuf(layer_window, buf_window, 160, 68, -1);
   init_desktop((char*)buf_back, binfo->screen_x, binfo->screen_y, back_color);
+
+  for(i = 0; i < 3; ++i){
+    layer_win_b[i] = layer_alloc(layer_ctl);
+    buf_win_b = (unsigned char*)memory_manage_alloc(memman, 144 * 52);
+    layer_setbuf(layer_win_b[i], buf_win_b, 144, 52, -1);
+    lsprintf(str, "task_b%d", i);
+    make_window(buf_win_b, 144, 52, str, 0);
+    task_b[i] = task_alloc();
+    task_b[i]->tss.esp = memory_manage_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
+    task_b[i]->tss.eip = (int)&task_b_main;
+    task_b[i]->tss.es = 1 * 8;
+    task_b[i]->tss.cs = 2 * 8;
+    task_b[i]->tss.ss = 1 * 8;
+    task_b[i]->tss.ds = 1 * 8;
+    task_b[i]->tss.fs = 1 * 8;
+    task_b[i]->tss.gs = 1 * 8;
+    *((int*)(task_b[i]->tss.esp + 4)) = (int)layer_win_b[i];
+    task_run(task_b[i]);
+  }
+
+  layer_window = layer_alloc(layer_ctl);
+  buf_window = (unsigned char*)memory_manage_alloc_4k(memman, 160 * 52);
+  layer_setbuf(layer_window, buf_window, 144, 52, -1);
+  make_window(buf_window, 144, 52, "task_a", 1);
+  cursor_x = 8;
+  cursor_color = COLOR_000000;
+
+  timer = timer_alloc();
+  init_timer(timer, &fifo, 1);
+  settimer(timer, 50);
+
+  layer_mouse = layer_alloc(layer_ctl);
+  layer_setbuf(layer_mouse, buf_mouse, 16, 16, 99);
   init_mouse_cursor((char*)buf_mouse, 99);
-  make_window(buf_window, 160, 68, "counter");
-  layer_slide(layer_back, 0, 0);
   mouse_x = (binfo->screen_x - 16) / 2;
   mouse_y = (binfo->screen_y - 28 - 16) / 2;
-  layer_slide(layer_mouse, mouse_x, mouse_y);
-  layer_slide(layer_window, 80, 72);
 
-  layer_updown(layer_back, 0);
-  layer_updown(layer_window, 1);
-  layer_updown(layer_mouse, 2);
+  layer_slide(layer_back, 0, 0);
+  layer_slide(layer_win_b[0], 168,  56);
+  layer_slide(layer_win_b[1],   8, 116);
+  layer_slide(layer_win_b[2], 168, 116);
+  layer_slide(layer_window, 8, 56);
+  layer_slide(layer_mouse, mouse_x, mouse_y);
+
+  layer_updown(layer_back,     0);
+  layer_updown(layer_win_b[0], 1);
+  layer_updown(layer_win_b[1], 2);
+  layer_updown(layer_win_b[2], 3);
+  layer_updown(layer_window,   4);
+  layer_updown(layer_mouse,    5);
 
   lsprintf(str, "memory : %dMB    free:%dKB", memtotal/(1024*1024), memory_manage_total(memman)/1024);
   put_string_layer(layer_back, 0, 32, COLOR_FFFFFF, back_color, str, get_length(str));
 
-  tss_a.ldtr = 0;
-  tss_b.ldtr = 0;
-  tss_a.iomap = 0x40000000;
-  tss_b.iomap = 0x40000000;
-  set_segmdesc(gdt + 3, 103, (int)&tss_a, AR_TSS32);
-  set_segmdesc(gdt + 4, 103, (int)&tss_b, AR_TSS32);
-  load_tr(3 * 8);
-  task_b_esp = memory_manage_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
-  tss_b.eip = (int)&task_b_main;
-  tss_b.eflags = 0x00000202;
-  tss_b.eax = 0;
-  tss_b.ecx = 0;
-  tss_b.edx = 0;
-  tss_b.ebx = 0;
-  tss_b.esp = task_b_esp;
-  tss_b.ebp = 0;
-  tss_b.esi = 0;
-  tss_b.edi = 0;
-  tss_b.es = 1 * 8;
-  tss_b.cs = 2 * 8;
-  tss_b.ss = 1 * 8;
-  tss_b.ds = 1 * 8;
-  tss_b.fs = 1 * 8;
-  tss_b.gs = 1 * 8;
-  *((int*)(task_b_esp + 4)) = (int)layer_back;
-  mt_init();
-
   while(1){
-    // lsprintf(str, "%d", timer_ctl.count);
-    // put_string_layer(layer_window, 40, 28, COLOR_000000, COLOR_C6C6C6, str, 5);
     io_cli();
     if (!fifo_status32(&fifo)){
+      task_sleep(task_a);
       io_stihlt();
     }
     else{
@@ -161,7 +155,7 @@ void HariMain(void){
         lsprintf(str, "%X", i - KEY_BOTTOM);
         put_string_layer(layer_back, 0, 16, COLOR_FFFFFF, back_color, str, get_length(str));
         if(i < KEY_BOTTOM + 0x54){
-          if(keytable[i - KEY_BOTTOM] && cursor_x < 144){
+          if(keytable[i - KEY_BOTTOM] && cursor_x < 128){
             str[0] = keytable[i - KEY_BOTTOM];
             str[1] = '\0';
             put_string_layer(layer_window, cursor_x, 28, COLOR_000000, COLOR_C6C6C6, str, 1);
@@ -208,29 +202,19 @@ void HariMain(void){
           }
         }
       }
-      else if(i == 10){
-        put_string_layer(layer_back, 0, 64, COLOR_FFFFFF, back_color, "10[sec]", get_length("10[sec]"));
-      }
-      else if(i == 3){
-        put_string_layer(layer_back , 0, 80, COLOR_FFFFFF, back_color, "3[sec]", get_length("3[sec]"));
-      }
       else if(i <= 1){
         if (i != 0){
-          init_timer(timer3, &fifo, 0);
+          init_timer(timer, &fifo, 0);
           cursor_color = COLOR_C6C6C6;
         }
         else {
-          init_timer(timer3, &fifo, 1);
+          init_timer(timer, &fifo, 1);
           cursor_color = COLOR_000000;
         }
-        settimer(timer3, 50);
+        settimer(timer, 50);
         draw_rectangle(layer_window->buf, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
         layer_refresh(layer_window, cursor_x, 28, cursor_x + 8, 44);
       }
     }
   }
 }
-
-
-
-

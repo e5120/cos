@@ -2,4 +2,4 @@
 #include "define.h"
 #include "graphic.h"
 
-void make_window(unsigned char* buf, int xsize, int ysize, char* title);
+void make_window(unsigned char* buf, int xsize, int ysize, char* title, char act);

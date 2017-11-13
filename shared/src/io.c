@@ -1,5 +1,8 @@
 #include "../include/io.h"
 
+FIFO32 *keyfifo, *mousefifo;
+int keydata, mousedata;
+
 void wait_KBC_sendready(void){
   while(1){
     if((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0){

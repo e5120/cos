@@ -1,5 +1,4 @@
-#include "../include/interrupt.h"
-#include "../include/bootpack.h"
+#include "../include/macro.h"
 
 void int2char(char *, int);
 void int2hex(char *, int, int);

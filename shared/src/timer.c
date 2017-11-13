@@ -1,5 +1,6 @@
 #include "../include/timer.h"
-#include "../include/mult_task.h"
+
+TIMER_CTL timer_ctl;
 
 void init_pit(void){
   int i;
@@ -22,6 +23,7 @@ void init_pit(void){
 }
 
 void interrupt_handler20(int *esp){
+  extern TIMER* task_timer;
   TIMER* timer;
   char ts = 0;
 
@@ -36,7 +38,7 @@ void interrupt_handler20(int *esp){
       break;
     }
     timer->flags = TIMER_ALLOC;
-    if(timer != mt_timer){
+    if(timer != task_timer){
       put_fifo32(timer->fifo, timer->data);
     }
     else{
@@ -46,9 +48,9 @@ void interrupt_handler20(int *esp){
   }
 
   timer_ctl.timer = timer;
-  timer_ctl.next = timer_ctl.timer->timeout;
+  timer_ctl.next = timer->timeout;
   if(ts != 0){
-    mt_taskswitch();
+    task_switch();
   }
   return;
 }

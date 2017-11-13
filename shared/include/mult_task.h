@@ -1,8 +1,11 @@
 #pragma once
+#include "memory.h"
+#include "dsctbl.h"
+#include "mult_task_s.h"
 #include "timer.h"
 
-TIMER* mt_timer;
-int mt_tr;
-
-void mt_init(void);
-void mt_taskswitch(void);
+TASK* task_init(MEM_MAN* memman);
+TASK* task_alloc(void);
+void task_run(TASK* task);
+void task_switch(void);
+void task_sleep(TASK* task);

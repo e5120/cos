@@ -1,5 +1,4 @@
 #pragma once
-#include "asmfunc_def.h"
 
 // 割り込み用PICの番号
 #define PIC0_ICW1       0x0020

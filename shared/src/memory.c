@@ -3,6 +3,7 @@
 unsigned int memtest(unsigned int start, unsigned int end){
   char flag486 = 0;
   unsigned int eflag, cr0, i;
+
   eflag = io_load_eflags();
   eflag |= EFLAGS_AC_BIT;
   io_store_eflags(eflag);
@@ -17,7 +18,9 @@ unsigned int memtest(unsigned int start, unsigned int end){
     cr0 |= CR0_CACHE_DISABLE;
     store_cr0(cr0);
   }
+
   i = memtest_sub(start, end);
+
   if(flag486 != 0){
     cr0 = load_cr0();
     cr0 &= ~CR0_CACHE_DISABLE;
@@ -26,6 +29,7 @@ unsigned int memtest(unsigned int start, unsigned int end){
   return i;
 }
 
+/*
 unsigned int memtest_sub(unsigned int start, unsigned end){
   unsigned int i, *p, old, pat0 = 0xaa55aa55, pat1 = 0x55aa55aa;
   // 4KBずつメモリが使えるかチェック
@@ -47,6 +51,7 @@ not_memory:
   }
   return i;
 }
+*/
 
 void memory_manage_init(MEM_MAN* man){
   man->frees = 0;       // 空き情報

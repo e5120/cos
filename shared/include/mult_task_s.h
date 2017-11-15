@@ -1,6 +1,5 @@
 #pragma once
 #define MAX_TASKS   1000
-#define TASK_GDT0   3
 
 // Task Status Segment
 typedef struct TASK_STATUS_SEGMENT_32{
@@ -13,6 +12,7 @@ typedef struct TASK_STATUS_SEGMENT_32{
 typedef struct TASK{
     int sel;
     int flags;
+    int priority;
     TSS32 tss;
 }TASK;
 

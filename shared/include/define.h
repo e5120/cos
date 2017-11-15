@@ -18,12 +18,14 @@
 #define COLOR_008484 14
 #define COLOR_848484 15
 
+// バッファ最大値設定
 #define STR_MAX_BUF 32
 #define KEY_MAX_BUF 32
 #define MOUSE_MAX_BUF 256
 #define TIMER_MAX_BUF 8
 #define FIFO_MAX_BUF 128
 
+// 割り込みで用いられる各I/O機器の変数範囲
 #define KEY_BOTTOM 256
 #define KEY_TOP    512
 #define MOUSE_BOTTOM 512

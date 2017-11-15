@@ -1,7 +1,7 @@
 NASM = nasm
 BFLAGS = -f bin
-#OFLAGS = -f elf32
-OFLAGS = -f win32
+OFLAGS = -f elf32
+#OFLAGS = -f win32
 
 BINDIR = ../bin
 LISTDIR = ../list

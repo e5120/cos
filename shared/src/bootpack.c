@@ -3,11 +3,11 @@
 void task_b_main(LAYER* layer_win_b){
   FIFO32 fifo;
   TIMER *timer_put;
-  int i, fifobuf[128];
+  int i, fifobuf[FIFO_MAX_BUF];
   int count = 0;
   char  str[STR_MAX_BUF];
 
-  init_fifo32(&fifo, 128, fifobuf, 0);
+  init_fifo32(&fifo, FIFO_MAX_BUF, fifobuf, 0);
   timer_put = timer_alloc();
   init_timer(timer_put, &fifo, 100);
   settimer(timer_put, 100);
@@ -16,7 +16,7 @@ void task_b_main(LAYER* layer_win_b){
     ++count;
     io_cli();
     if(!fifo_status32(&fifo)){
-      io_stihlt();
+      io_sti();
     }
     else{
       i = get_fifo32(&fifo);
@@ -47,7 +47,6 @@ void HariMain(void){
   // I/O関連
   int mouse_x, mouse_y;            // マウスの(x,y)座標
   MOUSE_DEC mdec;                  // マウスデコードの構造体
-  extern char keytable[];
   // 割り込み関連
   int i, fifobuf[FIFO_MAX_BUF];    // i：割り込み時の値保存
   FIFO32 fifo;
@@ -65,12 +64,11 @@ void HariMain(void){
 
   init_pit();
   // I/O初期化
-  init_keyboard(&fifo, 256);
-  enable_mouse(&fifo, 512, &mdec);
+  init_keyboard(&fifo, KEY_BOTTOM);
+  enable_mouse(&fifo, MOUSE_BOTTOM, &mdec);
   io_out8(PIC0_IMR, 0xf8);    // PITとPIC1とキーボードを許可
   io_out8(PIC1_IMR, 0xef);    // マウスを許可
   // メモリチェック
-  i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
   memtotal = memtest(0x00400000, 0xbfffffff);
   memory_manage_init(memman);
   memory_manage_free(memman, 0x00001000, 0x0009e000);
@@ -91,7 +89,7 @@ void HariMain(void){
 
   for(i = 0; i < 3; ++i){
     layer_win_b[i] = layer_alloc(layer_ctl);
-    buf_win_b = (unsigned char*)memory_manage_alloc(memman, 144 * 52);
+    buf_win_b = (unsigned char*)memory_manage_alloc_4k(memman, 144 * 52);
     layer_setbuf(layer_win_b[i], buf_win_b, 144, 52, -1);
     lsprintf(str, "task_b%d", i);
     make_window(buf_win_b, 144, 52, str, 0);
@@ -105,7 +103,7 @@ void HariMain(void){
     task_b[i]->tss.fs = 1 * 8;
     task_b[i]->tss.gs = 1 * 8;
     *((int*)(task_b[i]->tss.esp + 4)) = (int)layer_win_b[i];
-    task_run(task_b[i]);
+    task_run(task_b[i], i + 1);
   }
 
   layer_window = layer_alloc(layer_ctl);
@@ -146,7 +144,7 @@ void HariMain(void){
     io_cli();
     if (!fifo_status32(&fifo)){
       task_sleep(task_a);
-      io_stihlt();
+      io_sti();
     }
     else{
       i = get_fifo32(&fifo);

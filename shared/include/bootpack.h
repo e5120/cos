@@ -15,3 +15,6 @@
 #include "timer.h"
 #include "window.h"
 
+extern char keytable[];
+//extern TIMER_CTL timer_ctl;
+

@@ -2,6 +2,8 @@
 #include "memory.h"
 #include "layer_s.h"
 
+#define LAYER_USED  1
+
 LAYER_CTL* layer_control_init(MEM_MAN* memman, unsigned char *vram, int xsize, int ysize);
 LAYER* layer_alloc(LAYER_CTL* ctl);
 void layer_setbuf(LAYER* layer, unsigned char* buf, int xsize, int ysize, int col_inv);

@@ -11,9 +11,6 @@
 
 #define KEYCMD_SENDTO_MOUSE     0xd4
 #define MOUSECMD_ENABLE         0xf4
-#define PORT_KEYDATA  0x0060
-
-
 
 void wait_KBC_sendready(void);
 void init_keyboard(FIFO32* fifo, int data);

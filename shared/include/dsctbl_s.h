@@ -1,12 +1,13 @@
 #pragma once
+
 // GDTの情報
 typedef struct SEGMENT_DESCRIPTION{
   short limit_low;
   short base_low;
-  char base_mid;
-  char access_right;
-  char limit_high;
-  char base_high;
+  char  base_mid;
+  char  access_right;
+  char  limit_high;
+  char  base_high;
 }SEG_DESC;
 
 // IDTの情報

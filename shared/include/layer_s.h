@@ -1,7 +1,6 @@
 #pragma once
 
 #define MAX_LAYERS  256
-#define LAYER_USED  1
 
 typedef struct LAYER_SHEET{
     unsigned char *buf;

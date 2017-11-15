@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -m32 -nostdlib
+CFLAGS = -m32 -march=i686 -nostdlib
 LD = ld
 LFLAGS = -m elf_i386 --oformat=binary -T os.lds
 INCLUDE = -I../include

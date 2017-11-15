@@ -22,45 +22,6 @@ void init_pit(void){
   return;
 }
 
-void interrupt_handler20(int *esp){
-  extern TIMER* task_timer;
-  TIMER* timer;
-  char ts = 0;
-
-  io_out8(PIC0_OCW2, 0x60);
-  ++timer_ctl.count;
-  if(timer_ctl.next > timer_ctl.count){
-    return;
-  }
-  timer = timer_ctl.timer;
-  while(1){
-    if(timer->timeout > timer_ctl.count){
-      break;
-    }
-    timer->flags = TIMER_ALLOC;
-    if(timer != task_timer){
-      put_fifo32(timer->fifo, timer->data);
-    }
-    else{
-      ts = 1;
-    }
-    timer = timer->next;
-  }
-
-  timer_ctl.timer = timer;
-  timer_ctl.next = timer->timeout;
-  if(ts != 0){
-    task_switch();
-  }
-  return;
-}
-
-void init_timer(TIMER* timer, FIFO32* fifo, int data){
-  timer->fifo = fifo;
-  timer->data = data;
-  return;
-}
-
 TIMER* timer_alloc(void){
   int i;
   for(i = 0; i < MAX_TIMER; ++i){
@@ -72,9 +33,14 @@ TIMER* timer_alloc(void){
   return 0;
 }
 
-
 void timer_free(TIMER* timer){
   timer->flags = TIMER_FREE;
+  return;
+}
+
+void init_timer(TIMER* timer, FIFO32* fifo, int data){
+  timer->fifo = fifo;
+  timer->data = data;
   return;
 }
 
@@ -106,5 +72,37 @@ void settimer(TIMER* timer, unsigned int timeout){
       return;
     }
   }
+}
+
+void interrupt_handler20(int *esp){
+  TIMER* timer;
+  char ts = 0;
+
+  io_out8(PIC0_OCW2, 0x60);
+  ++timer_ctl.count;
+  if(timer_ctl.next > timer_ctl.count){
+    return;
+  }
+  timer = timer_ctl.timer;
+  while(1){
+    if(timer->timeout > timer_ctl.count){
+      break;
+    }
+    timer->flags = TIMER_ALLOC;
+    if(timer != task_timer){
+      put_fifo32(timer->fifo, timer->data);
+    }
+    else{
+      ts = 1;
+    }
+    timer = timer->next;
+  }
+
+  timer_ctl.timer = timer;
+  timer_ctl.next = timer->timeout;
+  if(ts != 0){
+    task_switch();
+  }
+  return;
 }
 

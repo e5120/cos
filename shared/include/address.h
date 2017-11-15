@@ -1,6 +1,6 @@
 #pragma once
 
-// アセンブリ側で設定した諸変数のアドレス
+// アセンブリ側で設定した諸変数のアドレスと定数
 #define ADDR_BOOTINFO   0x00000ff0
 #define ADDR_IDT        0x0026f800
 #define LIMIT_IDT       0x000007ff

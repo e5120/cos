@@ -3,6 +3,15 @@
 FIFO32 *keyfifo, *mousefifo;
 int keydata, mousedata;
 
+// キーボードからの割り込み
+void interrupt_handler21(int *esp){
+  int data;
+  io_out8(PIC0_OCW2, 0x61);   //IRQ-01受付完了をPICに通知
+  data = io_in8(PORT_KEYDATA);
+  put_fifo32(keyfifo, data + keydata);
+  return;
+}
+
 void wait_KBC_sendready(void){
   while(1){
     if((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0){
@@ -22,12 +31,13 @@ void init_keyboard(FIFO32* fifo, int data){
   return;
 }
 
-// キーボードからの割り込み
-void interrupt_handler21(int *esp){
-  unsigned char data;
-  io_out8(PIC0_OCW2, 0x61);   //IRQ-01受付完了をPICに通知
+// マウスからの割り込み
+void interrupt_handler2c(int *esp){
+  int data;
+  io_out8(PIC1_OCW2, 0x64);
+  io_out8(PIC0_OCW2, 0x62);
   data = io_in8(PORT_KEYDATA);
-  put_fifo32(keyfifo, data + keydata);
+  put_fifo32(mousefifo, data + mousedata);
   return;
 }
 
@@ -39,16 +49,6 @@ void enable_mouse(FIFO32* fifo, int data, MOUSE_DEC* mdec){
   wait_KBC_sendready();
   io_out8(PORT_KEYDATA, MOUSECMD_ENABLE);
   mdec->phase = 0;
-  return;
-}
-
-// マウスからの割り込み
-void interrupt_handler2c(int *esp){
-  int data;
-  io_out8(PIC1_OCW2, 0x64);
-  io_out8(PIC0_OCW2, 0x62);
-  data = io_in8(PORT_KEYDATA);
-  put_fifo32(mousefifo, data + mousedata);
   return;
 }
 

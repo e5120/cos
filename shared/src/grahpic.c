@@ -1,7 +1,5 @@
 #include "../include/graphic.h"
 
-#define COLOR 16
-
 void init_palette(void){
   static unsigned char rgb_table[3*COLOR] = {
     0x00, 0x00, 0x00,
@@ -21,16 +19,16 @@ void init_palette(void){
     0x00, 0x84, 0x84,
     0x84, 0x84, 0x84,
   };
-  set_palette(COLOR, rgb_table);
+  set_palette(0, 15, rgb_table);
   return;
 }
 
-void set_palette(int color, unsigned char* rgb){
+void set_palette(int start, int end, unsigned char* rgb){
   int i, eflags;
   eflags = io_load_eflags();
   io_cli();
-  io_out8(0x03c8, 0);
-  for(i = 0; i < color; ++i){
+  io_out8(0x03c8, start);
+  for(i = start; i <= end; ++i){
     io_out8(0x03c9, rgb[0] / 4);
     io_out8(0x03c9, rgb[1] / 4);
     io_out8(0x03c9, rgb[2] / 4);
@@ -61,8 +59,7 @@ void draw_rectangle(char* vram_addr, int screen_width, unsigned char color,
 
 void put_font(char* vram_addr, int screen_x, int x, int y, char color, char* font){
   int i;
-  char* p;
-  char d;
+  char *p, d;
   for(i = 0; i < 16; ++i){
     p = vram_addr + (y + i) * screen_x + x;
     d = font[i];

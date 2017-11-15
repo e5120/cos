@@ -22,7 +22,8 @@ VRAM  EQU   0x0ff8      ; グラフィックバッファの開始番地
   MOV   AX,0x4f00
   INT   0x10
   CMP   AX,0x004f
-  JNE   scrn320
+;  JNE   scrn320    ; ひとまず320/200で開発
+  JMP   scrn320
 
 ; VBEバージョンチェック
   MOV   AX,[ES:DI+4]

@@ -1,4 +1,5 @@
 #pragma once
+// 16bitのバッファを持つFIFO
 typedef struct FIFO{
     unsigned char *buf;
     int r_flag;
@@ -8,6 +9,7 @@ typedef struct FIFO{
     int flags;
 }FIFO;
 
+// 32bitのバッファを持つFIFO
 typedef struct FIFO32{
     int *buf;
     int r_flag;

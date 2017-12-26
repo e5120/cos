@@ -3,8 +3,7 @@
 void task_b_main(LAYER* layer_win_b){
   FIFO32 fifo;
   TIMER *timer_put;
-  int i, fifobuf[FIFO_MAX_BUF];
-  int count = 0;
+  int i, fifobuf[FIFO_MAX_BUF], count = 0;
   char  str[STR_MAX_BUF];
 
   init_fifo32(&fifo, FIFO_MAX_BUF, fifobuf, 0);
@@ -34,15 +33,15 @@ void HariMain(void){
   // デバッグ用
 
   // boot関連 (asmhead.asmでのBOOT_INFO先頭番地)
-  BOOT_INFO* binfo = (BOOT_INFO*)ADDR_BOOTINFO;
+  BOOT_INFO *binfo = (BOOT_INFO*)ADDR_BOOTINFO;
   // メモリ関連
   unsigned int memtotal;           // メモリ総量
-  MEM_MAN* memman = (MEM_MAN*)MEMMANAGER_ADDR;  // メモリ管理用構造体
+  MEM_MAN *memman = (MEM_MAN*)MEMMANAGER_ADDR;  // メモリ管理用構造体
   // レイヤー関連
   char str[STR_MAX_BUF];           // 画面表示用の文字列格納
-  int back_color, cursor_color, cursor_x;    // 背景色,カーソルの色
+  int back_color, cursor_color, cursor_x;    // 背景色,カーソルの色,カーソルのx座標
   unsigned char *buf_back, buf_mouse[MOUSE_MAX_BUF], *buf_window;
-  LAYER_CTL* layer_ctl;
+  LAYER_CTL *layer_ctl;
   LAYER *layer_back, *layer_mouse, *layer_window;
   // I/O関連
   int mouse_x, mouse_y;            // マウスの(x,y)座標
@@ -52,9 +51,9 @@ void HariMain(void){
   FIFO32 fifo;
   // タスク関連
   unsigned char* buf_win_b;
-  LAYER* layer_win_b[3];
+  LAYER *layer_win_b[3];
   TASK   *task_a, *task_b[3];
-  TIMER* timer;
+  TIMER *timer;
 
   init_gdtidt();
   init_pic();
@@ -81,6 +80,7 @@ void HariMain(void){
   layer_ctl = layer_control_init(memman, (unsigned char*)binfo->vram, binfo->screen_x, binfo->screen_y);
   task_a = task_init(memman);
   fifo.task = task_a;
+  task_run(task_a, 1, 0);
 
   layer_back = layer_alloc(layer_ctl);
   buf_back = (unsigned char*)memory_manage_alloc_4k(memman, binfo->screen_x * binfo->screen_y);
@@ -103,7 +103,7 @@ void HariMain(void){
     task_b[i]->tss.fs = 1 * 8;
     task_b[i]->tss.gs = 1 * 8;
     *((int*)(task_b[i]->tss.esp + 4)) = (int)layer_win_b[i];
-    task_run(task_b[i], i + 1);
+    task_run(task_b[i], 2, i + 1);
   }
 
   layer_window = layer_alloc(layer_ctl);
@@ -164,7 +164,7 @@ void HariMain(void){
           put_string_layer(layer_window, cursor_x, 28, COLOR_000000, COLOR_C6C6C6, " ", 1);
           cursor_x -= 8;
         }
-        draw_rectangle(buf_window, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
+        draw_rectangle((char*)buf_window, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
         layer_refresh(layer_window, cursor_x, 28, cursor_x + 8, 44);
       }
       else if(MOUSE_BOTTOM <= i && i < MOUSE_TOP){
@@ -179,7 +179,7 @@ void HariMain(void){
           else if(mdec.btn & 0x04){
             str[2] = 'C';
           }
-          put_string_layer(layer_back, 32, 16, COLOR_FFFFFF, back_color, str, get_length(str));
+          put_string_layer(layer_back, 32, 16, COLOR_FFFFFF, back_color, str, 10);
           mouse_x += mdec.x;
           mouse_y += mdec.y;
           if(mouse_x < 0){
@@ -210,7 +210,7 @@ void HariMain(void){
           cursor_color = COLOR_000000;
         }
         settimer(timer, 50);
-        draw_rectangle(layer_window->buf, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
+        draw_rectangle((char*)layer_window->buf, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
         layer_refresh(layer_window, cursor_x, 28, cursor_x + 8, 44);
       }
     }

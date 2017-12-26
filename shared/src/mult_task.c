@@ -13,12 +13,16 @@ TASK* task_init(MEM_MAN* memman){
     taskctl->tasks0[i].sel = (TASK_GDT0 + i) * 8;
     set_segmdesc(gdt + TASK_GDT0 + i, 103, (int)&taskctl->tasks0[i].tss, AR_TSS32);
   }
+  for(i = 0; i < MAX_TASKLEVELS; ++i){
+    taskctl->level[i].running = 0;
+    taskctl->level[i].now = 0;
+  }
   task = task_alloc();
   task->flags = 2;
   task->priority = 2;
-  taskctl->running = 1;
-  taskctl->now = 0;
-  taskctl->tasks[0] = task;
+  task->level = 0;
+  task_add(task);
+  task_switchsub();
   load_tr(task->sel);
   task_timer = timer_alloc();
   settimer(task_timer, task->priority);
@@ -52,59 +56,109 @@ TASK* task_alloc(void){
   return 0;
 }
 
-
-void task_run(TASK* task, int priority){
+void task_run(TASK* task, int level, int priority){
+  if(level < 0){
+    level = task->level;  // レベルを変更しない
+  }
   if(priority > 0){
     task->priority = priority;
   }
-  if(task->flags != 2){
-    task->flags = 2;
-    taskctl->tasks[taskctl->running] = task;
-    ++taskctl->running;
+  if(task->flags == 2 && task->level != level){ // 動作中のレベルの変更
+    // この動作によりflagsが1となり、下のifも実行される
+    task_remove(task);
   }
+  if(task->flags != 2){
+    // スリープから起こされる
+    task->level = level;
+    task_add(task);
+  }
+  taskctl->lv_change = 1;
   return;
 }
 
 void task_switch(void){
-  TASK* task;
-  ++taskctl->now;
-  if(taskctl->now == taskctl->running){
-    taskctl->now = 0;
+  TASK_LV *t1 = &taskctl->level[taskctl->now_lv];
+  TASK *new_task, *now_task = t1->tasks[t1->now];
+
+  ++t1->now;
+  if(t1->now == t1->running){
+    t1->now = 0;
   }
-  task = taskctl->tasks[taskctl->now];
-  settimer(task_timer, task->priority);
-  if(taskctl->running >= 2){
-    farjmp(0, task->sel);
+  if(taskctl->lv_change != 0){
+    task_switchsub();
+    t1 = &taskctl->level[taskctl->now_lv];
+  }
+  new_task = t1->tasks[t1->now];
+  settimer(task_timer, new_task->priority);
+  if(new_task != now_task){
+    farjmp(0, new_task->sel);
   }
   return;
 }
 
 void task_sleep(TASK* task){
-    int i;
-    char ts = 0;
+    TASK *now_task;
     if(task->flags == 2){
-      if(task == taskctl->tasks[taskctl->now]){
-        ts = 1;
-      }
-      for(i = 0; i < taskctl->running; ++i){
-        if(taskctl->tasks[i] == task){
-          break;
-        }
-      }
-      --taskctl->running;
-      if(i < taskctl->now){
-        --taskctl->now;
-      }
-      for(; i < taskctl->running; ++i){
-        taskctl->tasks[i] = taskctl->tasks[i + 1];
-      }
-      task->flags = 1;
-      if(ts != 0){
-        if(taskctl->now >= taskctl->running){
-          taskctl->now = 0;
-        }
-        farjmp(0, taskctl->tasks[taskctl->now]->sel);
+      now_task = task_now();
+      task_remove(task);
+      if(task == now_task){
+        // 自分自身のスリープなので、タスクスイッチ
+        task_switchsub();
+        now_task = task_now();  // 設定後に現在のタスクを教えてもらう
+        farjmp(0, now_task->sel);
       }
     }
     return;
+}
+
+TASK *task_now(void){
+  TASK_LV *t1 = &taskctl->level[taskctl->now_lv];
+  return t1->tasks[t1->now];
+}
+
+void task_add(TASK *task){
+  TASK_LV *t1 = &taskctl->level[task->level];
+  t1->tasks[t1->running] = task;
+  ++t1->running;
+  task->flags = 2;  // 動作中
+  return;
+}
+
+void task_remove(TASK *task){
+  int i;
+  TASK_LV *t1 = &taskctl->level[task->level];
+
+  for(i = 0; i < t1->running; ++i){
+    if(t1->tasks[i] == task){
+      break;
+    }
+  }
+  --t1->running;
+  if(i < t1->now){
+    // iがnowの値未満の時nowもずれるので合わせる
+    --t1->now;
+  }
+  if(t1->now >= t1->running){
+    // nowの値がおかしければ修正
+    t1->now = 0;
+  }
+  task->flags = 1;    // スリープ中
+
+  // ずらす
+  for(; i < t1->running; ++i){
+    t1->tasks[i] = t1->tasks[i + 1];
+  }
+  return;
+}
+
+void task_switchsub(void){
+  int i;
+  for(i = 0; i < MAX_TASKLEVELS; ++i){
+    if(taskctl->level[i].running > 0){
+      break;
+    }
+  }
+  taskctl->now_lv = i;
+  taskctl->lv_change = 0;
+  return;
 }

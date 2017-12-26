@@ -16,3 +16,4 @@ TASK *task_now(void);
 void task_add(TASK *task);
 void task_remove(TASK *task);
 void task_switchsub(void);
+void task_idle(void);

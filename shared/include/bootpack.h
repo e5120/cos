@@ -3,6 +3,7 @@
 #include "io.h"
 #include "macro.h"
 #include "window.h"
+#include "console.h"
 
 extern char keytable[];
 

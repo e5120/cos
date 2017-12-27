@@ -8,7 +8,7 @@ void HariMain(void){
   unsigned int memtotal;           // メモリ総量
   MEM_MAN *memman = (MEM_MAN*)MEMMANAGER_ADDR;  // メモリ管理用構造体
   // レイヤー関連
-  char str[STR_MAX_BUF];           // 画面表示用の文字列格納
+  char str[STR_MAX_BUF];      // 画面表示用の文字列格納, コマンド文字列用
   int back_color, cursor_color, cursor_x;    // 背景色,カーソルの色,カーソルのx座標
   unsigned char *buf_back, buf_mouse[MOUSE_MAX_BUF], *buf_window, *buf_cons;
   LAYER_CTL *layer_ctl;
@@ -93,6 +93,7 @@ void HariMain(void){
   task_cons->tss.fs = 1 * 8;
   task_cons->tss.gs = 1 * 8;
   *((int*)(task_cons->tss.esp + 4)) = (int)layer_cons;
+  *((int*)(task_cons->tss.esp + 8)) = memtotal;
   task_run(task_cons, 2, 2);
 
   layer_slide(layer_back, 0, 0);
@@ -104,9 +105,6 @@ void HariMain(void){
   layer_updown(layer_cons,     1);
   layer_updown(layer_window,   2);
   layer_updown(layer_mouse,    3);
-
-  lsprintf(str, "memory : %dMB    free:%dKB", memtotal/(1024*1024), memory_manage_total(memman)/1024);
-  put_string_layer(layer_back, 0, 32, COLOR_FFFFFF, back_color, str, get_length(str));
 
   while(1){
     if(fifo_status32(&keycmd) > 0 && keycmd_wait < 0){
@@ -123,8 +121,6 @@ void HariMain(void){
       i = get_fifo32(&fifo);
       io_sti();
       if(KEY_BOTTOM <= i && i < KEY_TOP){
-        lsprintf(str, "%X", i - KEY_BOTTOM);
-        put_string_layer(layer_back, 0, 16, COLOR_FFFFFF, back_color, str, get_length(str));
         if(i < KEY_BOTTOM + 0x80){
           if(key_shift == 0){
             str[0] = keytable[i - KEY_BOTTOM];
@@ -164,16 +160,26 @@ void HariMain(void){
             put_fifo32(&task_cons->fifo, 8 + KEY_BOTTOM);  // asciiコードで8がバックスペースに相当
           }
         }
+        if(i == KEY_BOTTOM + 0x1c){   // enter
+          if(key_to != 0){
+            put_fifo32(&task_cons->fifo, 10 + KEY_BOTTOM);
+          }
+        }
         if(i == 256 + 0x0f){    // tab
           if(key_to == 0){
             key_to = 1;
             make_wtitle(buf_window, layer_window->bxsize, "task_a", 0);
             make_wtitle(buf_cons, layer_cons->bxsize, "console", 1);
+            cursor_color = -1;
+            draw_rectangle((char*)layer_window->buf, layer_window->bxsize, COLOR_C6C6C6, cursor_x, 28, 8, 16);
+            put_fifo32(&task_cons->fifo, 2);    // コンソールのカーソルON
           }
           else{
             key_to = 0;
             make_wtitle(buf_window, layer_window->bxsize, "task_a", 1);
             make_wtitle(buf_cons, layer_cons->bxsize, "console", 0);
+            cursor_color = COLOR_000000;
+            put_fifo32(&task_cons->fifo, 3);    // コンソールのカーソルOFF
           }
           layer_refresh(layer_window, 0, 0, layer_window->bxsize, 21);
           layer_refresh(layer_cons, 0, 0, layer_cons->bxsize, 21);
@@ -213,22 +219,14 @@ void HariMain(void){
           wait_KBC_sendready();
           io_out8(PORT_KEYDATA, keycmd_wait);
         }
-        draw_rectangle((char*)buf_window, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
+        // カーソル再表示
+        if(cursor_color >= 0){
+          draw_rectangle((char*)buf_window, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
+        }
         layer_refresh(layer_window, cursor_x, 28, cursor_x + 8, 44);
       }
       else if(MOUSE_BOTTOM <= i && i < MOUSE_TOP){
         if(mouse_decode(&mdec, i - MOUSE_BOTTOM) != 0){
-          lsprintf(str, "[lcr %d %d]", mdec.x, mdec.y);
-          if(mdec.btn & 0x01){
-            str[1] = 'L';
-          }
-          else if(mdec.btn & 0x02){
-            str[3] = 'R';
-          }
-          else if(mdec.btn & 0x04){
-            str[2] = 'C';
-          }
-          put_string_layer(layer_back, 32, 16, COLOR_FFFFFF, back_color, str, 10);
           mouse_x += mdec.x;
           mouse_y += mdec.y;
           if(mouse_x < 0){
@@ -252,14 +250,20 @@ void HariMain(void){
       else if(i <= 1){
         if (i != 0){
           init_timer(timer, &fifo, 0);
-          cursor_color = COLOR_C6C6C6;
+          if(cursor_color >= 0){
+            cursor_color = COLOR_C6C6C6;
+          }
         }
         else {
           init_timer(timer, &fifo, 1);
-          cursor_color = COLOR_000000;
+          if(cursor_color >= 0){
+            cursor_color = COLOR_000000;
+          }
         }
         settimer(timer, 50);
-        draw_rectangle((char*)layer_window->buf, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
+        if(cursor_color >= 0){
+          draw_rectangle((char*)layer_window->buf, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
+        }
         layer_refresh(layer_window, cursor_x, 28, cursor_x + 8, 44);
       }
     }

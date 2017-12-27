@@ -161,3 +161,14 @@ int memory_manage_free_4k(MEM_MAN* man, unsigned int addr, unsigned int size){
   return i;
 }
 
+int lstrcmp(char *str1, char *str2){
+  while(*str1 == *str2){
+    if(*str1 == '\0' && *str2 == '\0'){
+      return 1;
+    }
+    ++str1;
+    ++str2;
+  }
+  return 0;
+}
+

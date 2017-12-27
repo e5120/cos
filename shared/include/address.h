@@ -2,6 +2,7 @@
 
 // アセンブリ側で設定した諸変数のアドレスと定数
 #define ADDR_BOOTINFO   0x00000ff0
+#define ADDR_DISKIMG    0x00100000
 #define ADDR_IDT        0x0026f800
 #define LIMIT_IDT       0x000007ff
 #define ADDR_GDT        0x00270000

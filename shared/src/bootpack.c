@@ -2,7 +2,6 @@
 
 void HariMain(void){
   // デバッグ用
-  int key_to = 0;
   // boot関連 (asmhead.asmでのBOOT_INFO先頭番地)
   BOOT_INFO *binfo = (BOOT_INFO*)ADDR_BOOTINFO;
   // メモリ関連
@@ -15,11 +14,13 @@ void HariMain(void){
   LAYER_CTL *layer_ctl;
   LAYER *layer_back, *layer_mouse, *layer_window, *layer_cons;
   // I/O関連
+  int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7;
+  int keycmd_wait = -1;
   int mouse_x, mouse_y;            // マウスの(x,y)座標
   MOUSE_DEC mdec;                  // マウスデコードの構造体
   // 割り込み関連
-  int i, fifobuf[FIFO_MAX_BUF];    // i：割り込み時の値保存
-  FIFO32 fifo;
+  int i, fifobuf[FIFO_MAX_BUF], keycmd_buf[FIFO_MAX_BUF];    // i：割り込み時の値保存
+  FIFO32 fifo, keycmd;
   // タスク関連
   TASK   *task_a, *task_cons;
   TIMER *timer;
@@ -29,6 +30,10 @@ void HariMain(void){
   io_sti();
 
   init_fifo32(&fifo, FIFO_MAX_BUF, fifobuf, 0);
+  init_fifo32(&keycmd, FIFO_MAX_BUF, keycmd_buf, 0);
+
+  put_fifo32(&keycmd, KEYCMD_LED);
+  put_fifo32(&keycmd, key_leds);
 
   init_pit();
   // I/O初期化
@@ -49,7 +54,7 @@ void HariMain(void){
   layer_ctl = layer_control_init(memman, (unsigned char*)binfo->vram, binfo->screen_x, binfo->screen_y);
   task_a = task_init(memman);
   fifo.task = task_a;
-  task_run(task_a, 1, 0);
+  task_run(task_a, 1, 2);
 
   layer_back = layer_alloc(layer_ctl);
   buf_back = (unsigned char*)memory_manage_alloc_4k(memman, binfo->screen_x * binfo->screen_y);
@@ -104,6 +109,11 @@ void HariMain(void){
   put_string_layer(layer_back, 0, 32, COLOR_FFFFFF, back_color, str, get_length(str));
 
   while(1){
+    if(fifo_status32(&keycmd) > 0 && keycmd_wait < 0){
+      keycmd_wait = get_fifo32(&keycmd);
+      wait_KBC_sendready();
+      io_out8(PORT_KEYDATA, keycmd_wait);
+    }
     io_cli();
     if (!fifo_status32(&fifo)){
       task_sleep(task_a);
@@ -115,19 +125,46 @@ void HariMain(void){
       if(KEY_BOTTOM <= i && i < KEY_TOP){
         lsprintf(str, "%X", i - KEY_BOTTOM);
         put_string_layer(layer_back, 0, 16, COLOR_FFFFFF, back_color, str, get_length(str));
-        if(i < KEY_BOTTOM + 0x54){
-          if(keytable[i - KEY_BOTTOM] && cursor_x < 128){
+        if(i < KEY_BOTTOM + 0x80){
+          if(key_shift == 0){
             str[0] = keytable[i - KEY_BOTTOM];
-            str[1] = '\0';
-            put_string_layer(layer_window, cursor_x, 28, COLOR_000000, COLOR_C6C6C6, str, 1);
-            cursor_x += 8;
+          }
+          else{
+            str[0] = symbol_keytable1[i - KEY_BOTTOM];
           }
         }
-        if(i == (256 + 0x0e) && cursor_x > 8){
-          put_string_layer(layer_window, cursor_x, 28, COLOR_000000, COLOR_C6C6C6, " ", 1);
-          cursor_x -= 8;
+        else{
+          str[0] = 0;
         }
-        if(i == 256 + 0x0f){
+        if('A' <= str[0] && str[0] <= 'Z'){
+          if(((key_leds & 4) == 0 && key_shift == 0) || ((key_leds & 4) != 0 && key_shift != 0)){
+            str[0] += 0x20;
+          }
+        }
+        if(str[0] != 0){
+          if(key_to == 0){    // task_aへ
+            if(cursor_x < 128){
+              str[1] = '\0';
+              put_string_layer(layer_window, cursor_x, 28, COLOR_000000, COLOR_C6C6C6, str, 1);
+              cursor_x += 8;
+            }
+          }
+          else{   // consoleへ
+            put_fifo32(&task_cons->fifo, str[0] + KEY_BOTTOM);
+          }
+        }
+        if(i == KEY_BOTTOM + 0x0e){    // backspace
+          if(key_to == 0){    // task_aへ
+            if(cursor_x > 8){
+              put_string_layer(layer_window, cursor_x, 28, COLOR_000000, COLOR_C6C6C6, " ", 1);
+              cursor_x -= 8;
+            }
+          }
+          else{   // consoleへ
+            put_fifo32(&task_cons->fifo, 8 + KEY_BOTTOM);  // asciiコードで8がバックスペースに相当
+          }
+        }
+        if(i == 256 + 0x0f){    // tab
           if(key_to == 0){
             key_to = 1;
             make_wtitle(buf_window, layer_window->bxsize, "task_a", 0);
@@ -140,6 +177,41 @@ void HariMain(void){
           }
           layer_refresh(layer_window, 0, 0, layer_window->bxsize, 21);
           layer_refresh(layer_cons, 0, 0, layer_cons->bxsize, 21);
+        }
+        if(i == KEY_BOTTOM + 0x2a){    // 左シフトON
+          key_shift |= 1;
+        }
+        if(i == KEY_BOTTOM + 0x36){    // 右シフトON
+          key_shift |= 2;
+        }
+        if(i == KEY_BOTTOM + 0xaa){    // 左シフトOFF
+          key_shift &= ~1;
+        }
+        if(i == KEY_BOTTOM + 0xb6){    // 右シフトOFF
+          key_shift &= ~2;
+        }
+        if(i == KEY_BOTTOM + 0x3a){    // CapsLock
+          key_leds ^= 4;
+          put_fifo32(&keycmd, KEYCMD_LED);
+          put_fifo32(&keycmd, key_leds);
+        }
+        if(i == KEY_BOTTOM + 0x45){    // NumLock
+          key_leds ^= 2;
+          put_fifo32(&keycmd, KEYCMD_LED);
+          put_fifo32(&keycmd, key_leds);
+        }
+
+        if(i == KEY_BOTTOM + 0x46){    // ScrollLock
+          key_leds ^= 1;
+          put_fifo32(&keycmd, KEYCMD_LED);
+          put_fifo32(&keycmd, key_leds);
+        }
+        if(i == KEY_BOTTOM + 0xfa){     // キーボードが無事にデータを受け取った
+          keycmd_wait = -1;
+        }
+        if(i == KEY_BOTTOM + 0xfe){     // キーボードが無事にデータを受け取れなかった
+          wait_KBC_sendready();
+          io_out8(PORT_KEYDATA, keycmd_wait);
         }
         draw_rectangle((char*)buf_window, layer_window->bxsize, cursor_color, cursor_x, 28, 8, 16);
         layer_refresh(layer_window, cursor_x, 28, cursor_x + 8, 44);

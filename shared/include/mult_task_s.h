@@ -1,4 +1,6 @@
 #pragma once
+#include "fifo_s.h"
+
 #define MAX_TASKS   1000
 #define MAX_TASKS_LV 100
 #define MAX_TASKLEVELS 10
@@ -16,6 +18,7 @@ typedef struct TASK{
     int flags;
     int level;
     int priority;
+    FIFO32 fifo;
     TSS32 tss;
 }TASK;
 

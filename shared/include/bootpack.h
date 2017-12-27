@@ -5,5 +5,4 @@
 #include "window.h"
 #include "console.h"
 
-extern char keytable[];
-
+#define KEYCMD_LED 0xed

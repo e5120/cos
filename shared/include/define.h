@@ -19,7 +19,7 @@
 #define COLOR_848484 15
 
 // バッファ最大値設定
-#define STR_MAX_BUF 32
+#define STR_MAX_BUF 60
 #define KEY_MAX_BUF 32
 #define MOUSE_MAX_BUF 256
 #define TIMER_MAX_BUF 8

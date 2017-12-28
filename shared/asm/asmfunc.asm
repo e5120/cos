@@ -9,9 +9,11 @@
   GLOBAL    memtest_sub
   GLOBAL    asm_interrupt_handler20,asm_interrupt_handler21
   GLOBAL    asm_interrupt_handler2c,asm_interrupt_handler27
-  GLOBAL    load_tr,farjmp
+  GLOBAL    load_tr,farjmp,farcall
+  GLOBAL    asm_str_api
   EXTERN    interrupt_handler20,interrupt_handler21
   EXTERN    interrupt_handler27,interrupt_handler2c
+  EXTERN    str_api
 
 
 [SECTION .text]   ; オブジェクトファイルではコレを書いてからプログラム記述
@@ -203,3 +205,16 @@ mts_fin:
 farjmp :    ; void farjmp(int eip, int ct);
   JMP   FAR [ESP+4]
   RET
+
+farcall :   ; void farcall(int eip, int ct);
+  CALL  FAR [ESP+4]
+  RET
+
+asm_str_api :  ; void asm_str_api(void);
+  STI
+  PUSHAD    ; 保存のためのPUSH
+  PUSHAD    ; str_apiに渡すためのPUSH
+  CALL  str_api
+  ADD   ESP,32
+  POPAD
+  IRETD

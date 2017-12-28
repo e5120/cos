@@ -10,6 +10,7 @@ STVM = startvm
 CTLVM = controlvm
 VMTARGET = original
 
+APPDIR = ./app
 ASMDIR = ./asm
 BINDIR = ./bin
 IMGDIR = ./image
@@ -20,7 +21,7 @@ TARGET = haribote.img
 
 all :	$(TARGET)
 
-$(TARGET) :	assembly compile append
+$(TARGET) :	application assembly compile append
 
 assembly :
 	$(MAKE) -B $(MFLAG) $(ASMDIR)
@@ -30,6 +31,9 @@ append :
 
 compile :
 	$(MAKE) $(MFLAG) $(SRCDIR)
+
+application :
+	$(MAKE) -B $(MFLAG) $(APPDIR)
 
 run :
 	$(QEMU) $(QFLAGS) $(IMGDIR)/$(TARGET) $(QFLAGS2)

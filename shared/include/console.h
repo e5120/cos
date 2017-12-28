@@ -6,11 +6,22 @@
 #include "graphic.h"
 #include "macro.h"
 #include "memory.h"
-#include "file_s.h"
+#include "file.h"
 #include "dsctbl_s.h"
+#include "console_s.h"
 
 void console_task(LAYER *layer, unsigned int memtotal);
-int cons_newline(int cursor_y, LAYER *layer);
 
-void file_readfat(int *fat, unsigned char *img);
-void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
+void cons_newline(CONSOLE *cons);
+void cons_runcmd(char *cmdline, CONSOLE *cons, int *fat, unsigned int memtotal);
+void cmd_mem(CONSOLE *cons, unsigned int memtotal);
+void cmd_clear(CONSOLE*cons);
+void cmd_ls(CONSOLE *cons);
+void cmd_cat(CONSOLE *cons, int *fat, char *cmdline);
+int cmd_app(CONSOLE *cons, int *fat, char *cmdline);
+
+void str_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
+void cons_putchar(CONSOLE *cons, int chr, char move);
+void cons_putstr(CONSOLE *cons, char *s);
+void cons_putnstr(CONSOLE *cons, char *s, int n);
+

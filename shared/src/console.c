@@ -3,13 +3,17 @@
 void console_task(LAYER *layer, unsigned int memtotal){
   TIMER *timer;
   TASK *task = task_now();
-  char s[STR_MAX_BUF], cmdline[STR_MAX_BUF], *p;
   MEM_MAN *memman = (MEM_MAN*)MEMMANAGER_ADDR;
-  FILE_INFO *finfo = (FILE_INFO*)(ADDR_DISKIMG + 0x002600);
-  SEG_DESC *gdt = (SEG_DESC*)ADDR_GDT;
-  int fifobuf[FIFO_MAX_BUF], cursor_x = 16, cursor_y = 28, cursor_c = -1;
-  int i, x, y;
+  CONSOLE cons;
+  int i, fifobuf[FIFO_MAX_BUF];
   int *fat = (int*)memory_manage_alloc_4k(memman, 4 * 2880);
+  char cmdline[STR_MAX_BUF];
+
+  cons.layer = layer;
+  cons.cur_x = 8;
+  cons.cur_y = 28;
+  cons.cur_c = -1;
+  *((int *)0x0fec) = (int)&cons;
 
   init_fifo32(&task->fifo, FIFO_MAX_BUF, fifobuf, task);
   timer = timer_alloc();
@@ -19,7 +23,7 @@ void console_task(LAYER *layer, unsigned int memtotal){
   file_readfat(fat, (unsigned char*)(ADDR_DISKIMG + 0x0002000));
 
   // プロンプト再表示
-  put_string_layer(layer, 8, 28, COLOR_FFFFFF, COLOR_000000, ">", 1);
+  cons_putchar(&cons, '>', 1);
 
   while(1){
     io_cli();
@@ -33,271 +37,278 @@ void console_task(LAYER *layer, unsigned int memtotal){
       if(i <= 1){
         if(i != 0){
           init_timer(timer, &task->fifo, 0);
-          if(cursor_c >= 0){
-            cursor_c = COLOR_FFFFFF;
+          if(cons.cur_c >= 0){
+            cons.cur_c = COLOR_FFFFFF;
           }
         }
         else{
           init_timer(timer, &task->fifo, 1);
-          if(cursor_c >= 0){
-            cursor_c = COLOR_000000;
+          if(cons.cur_c >= 0){
+            cons.cur_c = COLOR_000000;
           }
         }
         settimer(timer, 50);
       }
       if(i == 2){
-        cursor_c = COLOR_FFFFFF;
+        cons.cur_c = COLOR_FFFFFF;
       }
       if(i == 3){
-        draw_rectangle((char*)layer->buf, layer->bxsize, COLOR_000000, cursor_x, cursor_y, 8, 16);
-        cursor_c = -1;
+        draw_rectangle((char*)layer->buf, layer->bxsize, COLOR_000000, cons.cur_x, cons.cur_y, 8, 16);
+        cons.cur_c = -1;
       }
       if(KEY_BOTTOM <= i && i < KEY_TOP){
         if(i == 8 + KEY_BOTTOM){    // backspace
-          if(cursor_x > 16){
-            put_string_layer(layer, cursor_x, cursor_y, COLOR_FFFFFF, COLOR_000000, " ", 1);
-            cursor_x -= 8;
+          if(cons.cur_x > 16){
+            cons_putchar(&cons, ' ', 0);
+            cons.cur_x -= 8;
           }
         }
         else if(i == 10 + KEY_BOTTOM){    // enter
-          put_string_layer(layer, cursor_x, cursor_y, COLOR_FFFFFF, COLOR_000000, " ", 1);
-          cmdline[cursor_x / 8 - 2] = 0;
-          cursor_y = cons_newline(cursor_y, layer);
-          // コマンド実行
-            if(lstrcmp(cmdline, "mem")){
-              // memコマンド
-              lsprintf(s, "total %dMB", memtotal / (1024 * 1024));
-              put_string_layer(layer, 8, cursor_y, COLOR_FFFFFF, COLOR_000000, s, get_length(s));
-              cursor_y = cons_newline(cursor_y, layer);
-              lsprintf(s, "free %dKB", memory_manage_total(memman) / 1024);
-              put_string_layer(layer, 8, cursor_y, COLOR_FFFFFF, COLOR_000000, s, get_length(s));
-              cursor_y = cons_newline(cursor_y, layer);
-              cursor_y = cons_newline(cursor_y, layer);
-            }
-            else if(lstrcmp(cmdline, "clear")){
-              for(y = 28; y < 28 + 128; ++y){
-                for(x = 8; x < 8 + 240; ++x){
-                  layer->buf[x + y * layer->bxsize] = COLOR_000000;
-                }
-              }
-              layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
-              cursor_y = 28;
-            }
-            else if(lstrcmp(cmdline, "ls")){
-              for(x = 0; x < 224; ++x){
-                if(finfo[x].name[0] == 0x00){
-                  break;
-                }
-                if(finfo[x].name[0] != 0xe5){
-                  if((finfo[x].type & 0x18) == 0){
-                    lsprintf(s, "filename.ext %d", finfo[x].size);
-                    for(y = 0; y < 8; ++y){
-                      s[y] = finfo[x].name[y];
-                    }
-                    s[9] = finfo[x].ext[0];
-                    s[10] = finfo[x].ext[1];
-                    s[11] = finfo[x].ext[2];
-                    put_string_layer(layer, 8, cursor_y, COLOR_FFFFFF, COLOR_000000, s, get_length(s));
-                    cursor_y = cons_newline(cursor_y, layer);
-                  }
-                }
-              }
-              cursor_y = cons_newline(cursor_y, layer);
-            }
-            else if(lstrncmp(cmdline, "cat ", 4)){
-              // catコマンド
-              for(y = 0; y < 11; ++y){
-                s[y] = ' ';
-              }
-              y = 0;
-              for(x = 4; y < 11 && cmdline[x] != 0; ++x){
-                if(cmdline[x] == '.' && y <= 8){
-                  y = 8;
-                }
-                else{
-                  s[y] = cmdline[x];
-                  if('a' <= s[y] && s[y] <= 'z'){
-                    s[y] -= 0x20;
-                  }
-                  ++y;
-                }
-              }
-              // フィアル探索
-              for(x = 0; x < 224;){
-                if(finfo[x].name[0] == 0x00){
-                  break;
-                }
-                if((finfo[x].type & 0x18) == 0){
-                  for(y = 0; y < 11; ++y){
-                    if(finfo[x].name[y] != s[y]){
-                      goto next_file;
-                    }
-                  }
-                  break;    // ファイル発見
-                }
-next_file:
-                ++x;
-              }
-              if(x < 224 && finfo[x].name[0] != 0x00){
-                // ファイル発見した場合
-                y = finfo[x].size;
-                p = (char*)memory_manage_alloc_4k(memman, finfo[x].size);
-                file_loadfile(finfo[x].clustno, finfo[x].size, p, fat, (char*)(ADDR_DISKIMG + 0x003e00));
-                cursor_x = 8;
-                for(y = 0; y < finfo[x].size; ++y){
-                  s[0] = p[y];
-                  s[1] = '\0';
-                  if(s[0] == 0x09){   // tab
-                    while(1){
-                      put_string_layer(layer, cursor_x, cursor_y, COLOR_FFFFFF, COLOR_000000, " ", 1);
-                      cursor_x += 8;
-                      if(cursor_x == 8 + 240){
-                        cursor_x = 8;
-                        cursor_y = cons_newline(cursor_y, layer);
-                      }
-                      if(((cursor_x - 8) & 0x1f) == 0){
-                        break;
-                      }
-                    }
-                  }
-                  else if(s[0] == 0x0a){    // 改行
-                    cursor_x = 8;
-                    cursor_y = cons_newline(cursor_y, layer);
-                  }
-                  else if(s[0] == 0x0d){    // 復帰
-                    // 現状何もしない
-                  }
-                  else{
-                    put_string_layer(layer, cursor_x, cursor_y, COLOR_FFFFFF, COLOR_000000, s, 1);
-                    cursor_x += 8;
-                    if(cursor_x == 8 + 240){
-                      cursor_x = 8;
-                      cursor_y = cons_newline(cursor_y, layer);
-                    }
-                  }
-                }
-                memory_manage_free_4k(memman, (int)p, finfo[x].size);
-              }
-              else{
-                // ファイル発見できなかった場合
-                put_string_layer(layer, 8, cursor_y, COLOR_FFFFFF, COLOR_000000, "File not found.", 15);
-                cursor_y = cons_newline(cursor_y, layer);
-              }
-              cursor_y = cons_newline(cursor_y, layer);
-            }
-            else if(lstrcmp(cmdline, "hlt")){
-              for(y = 0; y < 11; ++y){
-                s[y] = ' ';
-              }
-              s[0] = 'H';
-              s[1] = 'L';
-              s[2] = 'T';
-              s[8] = 'B';
-              s[9] = 'I';
-              s[10] = 'N';
-              for(x = 0; x < 224; ){
-                if(finfo[x].name[0] == 0x00){
-                  break;
-                }
-                if((finfo[x].type & 0x18) == 0){
-                  for(y = 0; y <11; ++y){
-                    if(finfo[x].name[y] != s[y]){
-                      goto halt_next_file;
-                    }
-                  }
-                  break;
-                }
-halt_next_file:
-                ++x;
-              }
-              if(x < 224 && finfo[x].name[0] != 0x00){
-                // ファイル発見
-                p = (char*) memory_manage_alloc_4k(memman, finfo[x].size);
-                file_loadfile(finfo[x].clustno, finfo[x].size, p, fat, (char*)(ADDR_DISKIMG + 0x003e00));
-                set_segmdesc(gdt + 1003, finfo[x].size - 1, (int)p, AR_CODE32_ER);
-                farjmp(0, 1003 * 8);
-                memory_manage_free_4k(memman, (int)p, finfo[x].size);
-              }
-              else{
-                put_string_layer(layer, 8, cursor_y, COLOR_FFFFFF, COLOR_000000, "File not found.", 15);
-                cursor_y = cons_newline(cursor_y, layer);
-              }
-              cursor_y = cons_newline(cursor_y, layer);
-            }
-            else if(cmdline[0] != 0){
-              put_string_layer(layer, 8, cursor_y, COLOR_FFFFFF, COLOR_000000, "Bad command.", 12);
-              cursor_y = cons_newline(cursor_y, layer);
-              cursor_y = cons_newline(cursor_y, layer);
-            }
-            put_string_layer(layer, 8, cursor_y, COLOR_FFFFFF, COLOR_000000, ">", 1);
-            cursor_x = 16;
+          cons_putchar(&cons, ' ', 0);
+          cmdline[cons.cur_x / 8 - 2] = 0;
+          cons_newline(&cons);
+          cons_runcmd(cmdline, &cons, fat, memtotal);
+          cons_putchar(&cons, '>', 1);
         }
         else{   // 一般文字
-          if(cursor_x < 240){
-            s[0] = i - KEY_BOTTOM;
-            s[1] = '\0';
-            cmdline[cursor_x / 8 - 2] = i - KEY_BOTTOM;
-            put_string_layer(layer, cursor_x, cursor_y, COLOR_FFFFFF, COLOR_000000, s, 1);
-            cursor_x += 8;
+          if(cons.cur_x < 240){
+            cmdline[cons.cur_x / 8 - 2] = i - KEY_BOTTOM;
+            cons_putchar(&cons, i - 256, 1);
           }
         }
       }
       // カーソル再表示
-      if(cursor_c >= 0){
-        draw_rectangle((char*)layer->buf, layer->bxsize, cursor_c, cursor_x, cursor_y, 8, 16);
+      if(cons.cur_c >= 0){
+        draw_rectangle((char*)layer->buf, layer->bxsize, cons.cur_c, cons.cur_x, cons.cur_y, 8, 16);
       }
-      layer_refresh(layer, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
+      layer_refresh(layer, cons.cur_x, cons.cur_y, cons.cur_x + 8, cons.cur_y + 16);
     }
   }
 }
 
-int cons_newline(int cursor_y, LAYER *layer){
+void cons_newline(CONSOLE *cons){
   int x, y;
-  if(cursor_y < 28 + 112){
-    cursor_y += 16;
+  if(cons->cur_y < 28 + 112){
+    cons->cur_y += 16;
   }
   else{
     // スクロール
     for(y = 28; y < 28 + 112; ++y){
       for(x = 8; x < 8 + 240; ++x){
-        layer->buf[x + y * layer->bxsize] = layer->buf[x + (y + 16) * layer->bxsize];
+        cons->layer->buf[x + y * cons->layer->bxsize] = cons->layer->buf[x + (y + 16) * cons->layer->bxsize];
       }
     }
     for(y = 28 + 112; y < 28 + 128; ++y){
       for(x = 8; x < 8 + 240; ++x){
-        layer->buf[x + y * layer->bxsize] = COLOR_000000;
+        cons->layer->buf[x + y * cons->layer->bxsize] = COLOR_000000;
       }
     }
-    layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
+    layer_refresh(cons->layer, 8, 28, 8 + 240, 28 + 128);
   }
-  return cursor_y;
+  cons->cur_x = 8;
+  return;
 }
 
-void file_readfat(int *fat, unsigned char *img){
-  int i, j = 0;
-  for(i = 0; i <2880; i+= 2){
-    fat[i + 0] = (img[j + 0] | img[j + 1] << 8) & 0xfff;
-    fat[i + 1] = (img[j + 1] | img[j + 2] << 4) & 0xfff;
-    j += 3;
+void cons_putchar(CONSOLE *cons, int chr, char move){
+  char s[2];
+  s[0] = chr;
+  s[1] = '\0';
+  if(s[0] == 0x09){   // tab
+    while(1){
+      put_string_layer(cons->layer, cons->cur_x, cons->cur_y, COLOR_FFFFFF, COLOR_000000, " ", 1);
+      cons->cur_x += 8;
+      if(cons->cur_x == 8 + 240){
+        cons->cur_x = 8;
+        cons_newline(cons);
+      }
+      if(((cons->cur_x - 8) & 0x1f) == 0){
+        break;
+      }
+    }
+  }
+  else if(s[0] == 0x0a){    // 改行
+    cons_newline(cons);
+  }
+  else if(s[0] == 0x0d){    // 復帰
+    // 現状何もしない
+  }
+  else{
+    put_string_layer(cons->layer, cons->cur_x, cons->cur_y, COLOR_FFFFFF, COLOR_000000, s, 1);
+    if(move != 0){
+      cons->cur_x += 8;
+      if(cons->cur_x == 8 + 240){
+        cons_newline(cons);
+      }
+    }
   }
   return;
 }
 
-void file_loadfile(int clustno, int size, char *buf, int *fat, char *img){
-  int i;
-  while(1){
-    if(size <= 512){
-      for(i = 0; i < size; ++i){
-        buf[i] = img[clustno * 512 + i];
+void cons_runcmd(char *cmdline, CONSOLE *cons, int *fat, unsigned int memtotal){
+  // コマンド実行
+    if(lstrcmp(cmdline, "mem")){
+      cmd_mem(cons, memtotal);
+    }
+    else if(lstrcmp(cmdline, "clear")){
+      cmd_clear(cons);
+    }
+    else if(lstrcmp(cmdline, "ls")){
+      cmd_ls(cons);
+    }
+    else if(lstrncmp(cmdline, "cat ", 4)){
+      cmd_cat(cons, fat, cmdline);
+    }
+    else if(cmdline[0] != 0){
+      if(cmd_app(cons, fat, cmdline) == 0){
+        put_string_layer(cons->layer, 8, cons->cur_y, COLOR_FFFFFF, COLOR_000000, "Bad command.", 12);
+        cons_newline(cons);
+        cons_newline(cons);
       }
+    }
+    return;
+}
+
+void cmd_mem(CONSOLE *cons, unsigned int memtotal){
+  MEM_MAN *memman = (MEM_MAN*)MEMMANAGER_ADDR;
+  char s[STR_MAX_BUF];
+
+  lsprintf(s, "total %dMB\n", memtotal / (1024 * 1024));
+  cons_putstr(cons, s);
+  lsprintf(s, "free %dKB\n\n", memory_manage_total(memman) / 1024);
+  cons_putstr(cons, s);
+  return;
+}
+
+void cmd_clear(CONSOLE*cons){
+  int x, y;
+  LAYER *layer = cons->layer;
+  for(y = 28; y < 28 + 128; ++y){
+    for(x = 8; x < 8 + 240; ++x){
+      layer->buf[x + y * layer->bxsize] = COLOR_000000;
+    }
+  }
+  layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
+  cons->cur_y = 28;
+}
+
+void cmd_ls(CONSOLE *cons){
+  FILE_INFO *finfo = (FILE_INFO*)(ADDR_DISKIMG + 0x002600);
+  int i, j;
+  char s[STR_MAX_BUF];
+
+  for(i = 0; i < 224; ++i){
+    if(finfo[i].name[0] == 0x00){
       break;
     }
-    for(i = 0; i < 512; ++i){
-      buf[i] = img[clustno * 512 + i];
+    if(finfo[i].name[0] != 0xe5){
+      if((finfo[i].type & 0x18) == 0){
+        lsprintf(s, "filename.ext %d\n", finfo[i].size);
+        for(j = 0; j < 8; ++j){
+          s[j] = finfo[i].name[j];
+        }
+        s[9] = finfo[i].ext[0];
+        s[10] = finfo[i].ext[1];
+        s[11] = finfo[i].ext[2];
+        cons_putstr(cons, s);
+      }
     }
-    size -= 512;
-    buf += 512;
-    clustno = fat[clustno];
+  }
+  cons_newline(cons);
+  return;
+}
+
+void cmd_cat(CONSOLE *cons, int *fat, char *cmdline){
+  MEM_MAN *memman = (MEM_MAN*)MEMMANAGER_ADDR;
+  FILE_INFO *finfo = file_search(cmdline + 4, (FILE_INFO*)(ADDR_DISKIMG + 0x002600), 224);
+  char *p;
+  int i;
+
+  if(finfo != 0){
+    // ファイル発見した場合
+    p = (char*)memory_manage_alloc_4k(memman, finfo->size);
+    file_loadfile(finfo->clustno, finfo->size, p, fat, (char*)(ADDR_DISKIMG + 0x003e00));
+    for(i = 0; i < finfo->size; ++i){
+      cons_putchar(cons, p[i], 1);
+    }
+    memory_manage_free_4k(memman, (int)p, finfo->size);
+  }
+  else{
+    // ファイル発見できなかった場合
+    cons_putstr(cons, "File not found.");
+  }
+  cons_newline(cons);
+  return;
+}
+
+int cmd_app(CONSOLE *cons, int *fat, char *cmdline){
+  MEM_MAN *memman = (MEM_MAN*)MEMMANAGER_ADDR;
+  FILE_INFO *finfo = file_search("HLT.BIN", (FILE_INFO*)(ADDR_DISKIMG + 0x002600), 224);
+  SEG_DESC *gdt = (SEG_DESC*)ADDR_GDT;
+  char *p, name[18];
+  int i;
+
+  // コマンドラインからフィアル名を生成
+  for(i = 0; i < 13; ++i){
+      if(cmdline[i] <= ' '){
+        break;
+      }
+      name[i] = cmdline[i];
+  }
+  name[i] = '\0';
+
+  finfo = file_search(name, (FILE_INFO*)(ADDR_DISKIMG + 0x002600), 224);
+  if(finfo == 0 && name[i-1] != '.'){
+    // 拡張子付きでもう一度検索
+    name[i] = '.';
+    name[i + 1] = 'B';
+    name[i + 2] = 'I';
+    name[i + 3] = 'N';
+    name[i + 4] = '\0';
+    finfo = file_search(name, (FILE_INFO*)(ADDR_DISKIMG + 0x002600), 224);
+  }
+  if(finfo != 0){
+    // ファイル発見
+    p = (char*) memory_manage_alloc_4k(memman, finfo->size);
+    *((int*)0xfe8) = (int)p;
+    file_loadfile(finfo->clustno, finfo->size, p, fat, (char*)(ADDR_DISKIMG + 0x003e00));
+    set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER);
+    farcall(0, 1003 * 8);
+    memory_manage_free_4k(memman, (int)p, finfo->size);
+    cons_newline(cons);
+    return 1;
+  }
+  return 0;
+}
+
+void cons_putstr(CONSOLE *cons, char *s){
+  while(*s != '\0'){
+    cons_putchar(cons, *s, 1);
+    ++s;
+  }
+  return;
+}
+
+void cons_putnstr(CONSOLE *cons, char *s, int n){
+  while(*s == '\0' && n > 0){
+    cons_putchar(cons, *s, 1);
+    --n;
+    ++s;
+  }
+  return;
+}
+
+void str_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax){
+  CONSOLE *cons = (CONSOLE*) *((int*)0x0fec);
+  int cs_base = *((int*)0xfe8);
+  // edxでapiの切り替え, ebxが文字列の番地, ecxが文字数
+  if(edx == 1){
+    cons_putchar(cons, eax & 0xff, 1);
+  }
+  else if(edx == 2){
+    cons_putstr(cons, (char*)ebx + cs_base);
+  }
+  else if(edx == 3){
+    cons_putnstr(cons, (char*)ebx + cs_base, ecx);
   }
   return;
 }

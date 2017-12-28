@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -m32 -march=i686 -nostdlib
 LD = ld
-LFLAGS = -m elf_i386 --oformat=binary -T os.lds
+LFLAGS = -m elf_i386 -M=os.map --oformat=binary -T os.lds
 INCLUDE = -I../include
 SRC = $(wildcard *.c)
 OBJ = $(addprefix $(OBJDIR)/,$(SRC:.c=.o))
@@ -20,3 +20,4 @@ $(OBJDIR)/%.o : %.c Makefile
 
 clean :
 	rm $(OBJDIR)/*.o
+	rm os.map

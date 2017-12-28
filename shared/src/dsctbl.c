@@ -22,6 +22,9 @@ void init_gdtidt(void){
   set_gatedesc(idt + 0x27, (int)asm_interrupt_handler27, 2*8, AR_INTGATE32);
   set_gatedesc(idt + 0x2c, (int)asm_interrupt_handler2c, 2*8, AR_INTGATE32);
 
+  // original application  0x30 ~ 0xff
+  set_gatedesc(idt + 0x40, (int)asm_str_api, 2*8, AR_INTGATE32);
+
   return;
 }
 

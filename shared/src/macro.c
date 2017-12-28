@@ -124,3 +124,27 @@ unsigned int get_length(char* str){
 	}
 	return count;
 }
+
+int lstrcmp(char *str1, char *str2){
+  while(*str1 == *str2){
+    if(*str1 == '\0' && *str2 == '\0'){
+      return 1;
+    }
+    ++str1;
+    ++str2;
+  }
+  return 0;
+}
+
+int lstrncmp(char *str1, char *str2, int n){
+	while(n != 0){
+		if(*str1 != *str2){
+			return 0;
+		}
+		--n;
+		++str1;
+		++str2;
+	}
+	return 1;
+}
+

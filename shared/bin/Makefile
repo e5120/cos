@@ -4,6 +4,7 @@ COPY = mcopy
 CFLAGS =
 
 APPDIR = ../app
+BINDIR = $(APPDIR)/bin
 SYSDIR = ../sys
 FILEDIR = ../file
 IMGDIR = ../image
@@ -18,7 +19,7 @@ append : $(BOOT) $(IPL) Makefile
 	$(COPY) -i $(IMGDIR)/$(OS).img $(SYSDIR)/$(OS).sys ::
 	$(COPY) -i $(IMGDIR)/$(OS).img $(FILEDIR)/* ::
 	$(COPY) -i $(IMGDIR)/$(OS).img $(APPDIR)/* ::
-
+	$(COPY) -i $(IMGDIR)/$(OS).img $(BINDIR)/* ::
 
 clean :
 	rm $(IMGDIR)/*.img

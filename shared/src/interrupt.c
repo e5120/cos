@@ -25,3 +25,9 @@ void interrupt_handler27(int *esp){
   io_out8(PIC0_OCW2, 0x67);   // IRQ-07受付完了をPICに通知
   return;
 }
+
+int interrupt_handler0d(int *esp){
+  CONSOLE *cons = (CONSOLE*) *((int*) 0x0fec);
+  cons_putstr(cons, "\nINT 0D :\n General Protected Exception.\n");
+  return 1;
+}

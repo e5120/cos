@@ -55,4 +55,5 @@ clean :
 	$(MAKE) $(MFLAG) $(ASMDIR) clean
 	$(MAKE) $(MFLAG) $(SRCDIR) clean
 	$(MAKE) $(MFLAG) $(BINDIR) clean
+	$(MAKE) $(MFLAG) $(APPDIR) clean
 

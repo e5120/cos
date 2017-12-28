@@ -17,6 +17,7 @@ void init_gdtidt(void){
   load_idtr(LIMIT_IDT, ADDR_IDT);
 
   // IDTの設定
+  set_gatedesc(idt + 0x0d, (int)asm_interrupt_handler0d, 2*8, AR_INTGATE32);
   set_gatedesc(idt + 0x20, (int)asm_interrupt_handler20, 2*8, AR_INTGATE32);
   set_gatedesc(idt + 0x21, (int)asm_interrupt_handler21, 2*8, AR_INTGATE32);
   set_gatedesc(idt + 0x27, (int)asm_interrupt_handler27, 2*8, AR_INTGATE32);

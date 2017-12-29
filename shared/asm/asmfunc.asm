@@ -9,13 +9,13 @@
   GLOBAL    memtest_sub
   GLOBAL    asm_interrupt_handler20,asm_interrupt_handler21
   GLOBAL    asm_interrupt_handler2c,asm_interrupt_handler27
-  GLOBAL    asm_interrupt_handler0d
+  GLOBAL    asm_interrupt_handler0d,asm_interrupt_handler0c
   GLOBAL    load_tr,farjmp,farcall
   GLOBAL    asm_str_api
-  GLOBAL    start_app,end_app
+  GLOBAL    start_app,asm_end_app
   EXTERN    interrupt_handler20,interrupt_handler21
   EXTERN    interrupt_handler27,interrupt_handler2c
-  EXTERN    interrupt_handler0d
+  EXTERN    interrupt_handler0d,interrupt_handler0c
   EXTERN    str_api
 
 
@@ -185,12 +185,32 @@ asm_interrupt_handler0d :
   MOV		ES,AX
   CALL	interrupt_handler0d
   CMP		EAX,0		; ���������Ⴄ
-  JNE		end_app		; ���������Ⴄ
+  JNE		asm_end_app		; ���������Ⴄ
   POP		EAX
   POPAD
   POP		DS
   POP		ES
   ADD		ESP,4			; INT 0x0d �ł́A���ꂪ�K�v
+  IRETD
+
+asm_interrupt_handler0c :
+  STI
+  PUSH  ES
+  PUSH  DS
+  PUSHAD
+  MOV   EAX,ESP
+  PUSH  EAX
+  MOV   AX,SS
+  MOV   DS,AX
+  MOV   ES,AX
+  CALL  interrupt_handler0c
+  CMP   EAX,0
+  JNE   asm_end_app
+  POP   EAX
+  POPAD
+  POP   DS
+  POP   ES
+  ADD   ESP,4
   IRETD
 
 memtest_sub:	; unsigned int memtest_sub(unsigned int start, unsigned int end)
@@ -245,15 +265,16 @@ asm_str_api :  ; void asm_str_api(void);
   MOV   ES,AX
   CALL  str_api
   CMP   EAX,0       ; EAXが0でなければアプリ処理終了
-  JNE   end_app
+  JNE   asm_end_app
   ADD   ESP,32
   POPAD
   POP   ES
   POP   DS
   IRETD
 
-end_app :
+asm_end_app :
   MOV   ESP,[EAX]
+  MOV   DWORD [EAX+4],0
   POPAD
   RET             ; cmd_appへ帰る
 

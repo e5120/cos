@@ -1,4 +1,9 @@
 [BITS 32]
+
+  GLOBAL  HariMain
+
+[SECTION .text]
+HariMain:
   MOV   ECX,msg
   MOV   EDX,1
 
@@ -13,6 +18,7 @@ putloop:
 fin:
   MOV   EDX,4
   INT   0x40
-
+  
+[SECTION .data]
 msg:
   DB  "hello",0

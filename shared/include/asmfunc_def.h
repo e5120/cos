@@ -14,6 +14,7 @@ void load_tr(int tr);
 void farjmp(int eip, int cs);
 void farcall(int eip, int cs);
 void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
+void asm_end_app(void);
 void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
@@ -22,6 +23,7 @@ void asm_interrupt_handler21(void);
 void asm_interrupt_handler27(void);
 void asm_interrupt_handler2c(void);
 void asm_interrupt_handler0d(void);
+void asm_interrupt_handler0c(void);
 
 // original application
 void asm_str_api(void);

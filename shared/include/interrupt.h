@@ -18,4 +18,6 @@
 
 void init_pic(void);
 void interrupt_handler27(int *esp);
+int interrupt_handler0c(int *esp);
 int interrupt_handler0d(int *esp);
+

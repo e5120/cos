@@ -246,7 +246,7 @@ int cmd_app(CONSOLE *cons, int *fat, char *cmdline){
   SEG_DESC *gdt = (SEG_DESC*)ADDR_GDT;
   TASK *task = task_now();
   char *p, *q, name[18];
-  int i;
+  int i, segsize, datasize, esp, data;
 
   // コマンドラインからフィアル名を生成
   for(i = 0; i < 13; ++i){
@@ -273,19 +273,25 @@ int cmd_app(CONSOLE *cons, int *fat, char *cmdline){
     q = (char*) memory_manage_alloc_4k(memman, 64 * 1024);
     *((int*)0xfe8) = (int)p;
     file_loadfile(finfo->clustno, finfo->size, p, fat, (char*)(ADDR_DISKIMG + 0x003e00));
-    set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
-    set_segmdesc(gdt + 1004, 64 * 1024, (int)q, AR_DATA32_RW + 0x60);
-    if(finfo->size >= 8 && lstrncmp(p + 4, "Hari", 4)){
-      p[0] = 0xe8;
-      p[1] = 0x16;
-      p[2] = 0x00;
-      p[3] = 0x00;
-      p[4] = 0x00;
-      p[5] = 0xcb;
+    if(finfo->size >= 36 && lstrncmp(p + 4, "Hari", 4) && *p == 0x00){
+      segsize = *((int*)(p + 0x0000));
+      esp = *((int*)(p + 0x000c));
+      datasize = *((int*)(p + 0x0010));
+      data = *((int*)(p + 0x0014));
+      q = (char*) memory_manage_alloc_4k(memman, segsize);
+      *((int*)0xfe8) = (int)q;
+      set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
+      set_segmdesc(gdt + 1004, segsize - 1, (int)q, AR_DATA32_RW + 0x60);
+      for(i = 0; i < datasize; ++i){
+        q[esp + i] = p[data + i];
+      }
+      start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+      memory_manage_free_4k(memman, (int)q, segsize);
     }
-    start_app(0, 1003 * 8, 64 * 1024, 1004 * 8, &(task->tss.esp0));
+    else{
+      cons_putstr(cons, "file format error.\n");
+    }
     memory_manage_free_4k(memman, (int)p, finfo->size);
-    memory_manage_free_4k(memman, (int)q, 64 * 1024);
     cons_newline(cons);
     return 1;
   }

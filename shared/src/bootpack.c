@@ -24,6 +24,8 @@ void HariMain(void){
   // タスク関連
   TASK   *task_a, *task_cons;
   TIMER *timer;
+  // コンソール関連
+  CONSOLE *cons;
 
   init_gdtidt();
   init_pic();
@@ -183,6 +185,14 @@ void HariMain(void){
           }
           layer_refresh(layer_window, 0, 0, layer_window->bxsize, 21);
           layer_refresh(layer_cons, 0, 0, layer_cons->bxsize, 21);
+        }
+        if(i == KEY_BOTTOM + 0x3b && key_shift != 0 && task_cons->tss.ss0 != 0){   // shift + f1
+          cons = (CONSOLE*)*((int*)0xfec);
+          cons_putstr(cons, "\nBreak(key):shift + f1\n");
+          io_cli();
+          task_cons->tss.eax = (int)&(task_cons->tss.esp0);
+          task_cons->tss.eip = (int)asm_end_app;
+          io_sti();
         }
         if(i == KEY_BOTTOM + 0x2a){    // 左シフトON
           key_shift |= 1;

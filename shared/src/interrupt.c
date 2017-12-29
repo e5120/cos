@@ -28,6 +28,7 @@ void interrupt_handler27(int *esp){
 
 int interrupt_handler0d(int *esp){
   CONSOLE *cons = (CONSOLE*) *((int*) 0x0fec);
+  TASK *task = task_now();
   cons_putstr(cons, "\nINT 0D :\n General Protected Exception.\n");
-  return 1;
+  return &(task->tss.esp0);
 }

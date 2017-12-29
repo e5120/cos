@@ -13,7 +13,7 @@ BINDIR = ./bin
 SRCDIR = ./src
 OBJDIR = ./obj
 
-all: api app
+all: api app crack hello
 
 api: $(ASMDIR)/api.asm
 	$(NASM) $(OFLAGS) $(ASMDIR)/api.asm -o $(OBJDIR)/api.o
@@ -22,12 +22,15 @@ app: $(OBJDIR)/api.o Makefile
 	$(CC) $(CFLAGS) $(SRCDIR)/a.c -c -o $(OBJDIR)/a.o
 	$(LD) $(LFLAGS) $(OBJDIR)/a.o $(OBJDIR)/api.o -o $(BINDIR)/a.bin
 
+crack:
+	$(NASM) $(BFLAGS) $(ASMDIR)/crack.asm -o $(BINDIR)/crack.bin
+
 hlt:
-	$(NASM) $(BFLAGS) hlt.asm -o hlt.bin
+	$(NASM) $(BFLAGS) $(ASMDIR)/hlt.asm -o $(BINDIR)/hlt.bin
 
 hello:
-	$(NASM) $(BFLAGS) hello.asm -o hello.bin
-	$(NASM) $(BFLAGS) hello0.asm -o hello0.bin
+	$(NASM) $(BFLAGS) $(ASMDIR)/hello.asm -o $(BINDIR)/hello.bin
+	$(NASM) $(BFLAGS) $(ASMDIR)/hello0.asm -o $(BINDIR)/hello0.bin
 
 clean:
 	rm $(BINDIR)/*.bin

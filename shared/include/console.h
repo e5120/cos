@@ -20,7 +20,7 @@ void cmd_ls(CONSOLE *cons);
 void cmd_cat(CONSOLE *cons, int *fat, char *cmdline);
 int cmd_app(CONSOLE *cons, int *fat, char *cmdline);
 
-void str_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
+int str_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 void cons_putchar(CONSOLE *cons, int chr, char move);
 void cons_putstr(CONSOLE *cons, char *s);
 void cons_putnstr(CONSOLE *cons, char *s, int n);

@@ -244,6 +244,7 @@ int cmd_app(CONSOLE *cons, int *fat, char *cmdline){
   MEM_MAN *memman = (MEM_MAN*)MEMMANAGER_ADDR;
   FILE_INFO *finfo = file_search("HLT.BIN", (FILE_INFO*)(ADDR_DISKIMG + 0x002600), 224);
   SEG_DESC *gdt = (SEG_DESC*)ADDR_GDT;
+  TASK *task = task_now();
   char *p, *q, name[18];
   int i;
 
@@ -272,8 +273,8 @@ int cmd_app(CONSOLE *cons, int *fat, char *cmdline){
     q = (char*) memory_manage_alloc_4k(memman, 64 * 1024);
     *((int*)0xfe8) = (int)p;
     file_loadfile(finfo->clustno, finfo->size, p, fat, (char*)(ADDR_DISKIMG + 0x003e00));
-    set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER);
-    set_segmdesc(gdt + 1004, 64 * 1024, (int)q, AR_DATA32_RW);
+    set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
+    set_segmdesc(gdt + 1004, 64 * 1024, (int)q, AR_DATA32_RW + 0x60);
     if(finfo->size >= 8 && lstrncmp(p + 4, "Hari", 4)){
       p[0] = 0xe8;
       p[1] = 0x16;
@@ -282,7 +283,7 @@ int cmd_app(CONSOLE *cons, int *fat, char *cmdline){
       p[4] = 0x00;
       p[5] = 0xcb;
     }
-    start_app(0, 1003 * 8, 64 * 1024, 1004 * 8);
+    start_app(0, 1003 * 8, 64 * 1024, 1004 * 8, &(task->tss.esp0));
     memory_manage_free_4k(memman, (int)p, finfo->size);
     memory_manage_free_4k(memman, (int)q, 64 * 1024);
     cons_newline(cons);
@@ -308,8 +309,9 @@ void cons_putnstr(CONSOLE *cons, char *s, int n){
   return;
 }
 
-void str_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax){
+int str_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax){
   CONSOLE *cons = (CONSOLE*) *((int*)0x0fec);
+  TASK *task = task_now();
   int cs_base = *((int*)0xfe8);
   // edxでapiの切り替え, ebxが文字列の番地, ecxが文字数
   if(edx == 1){
@@ -321,5 +323,8 @@ void str_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
   else if(edx == 3){
     cons_putnstr(cons, (char*)ebx + cs_base, ecx);
   }
-  return;
+  else if(edx == 4){
+    return &(task->tss.esp0);
+  }
+  return 0;
 }

@@ -11,12 +11,12 @@
   GLOBAL    asm_interrupt_handler2c,asm_interrupt_handler27
   GLOBAL    asm_interrupt_handler0d,asm_interrupt_handler0c
   GLOBAL    load_tr,farjmp,farcall
-  GLOBAL    asm_str_api
+  GLOBAL    asm_os_api
   GLOBAL    start_app,asm_end_app
   EXTERN    interrupt_handler20,interrupt_handler21
   EXTERN    interrupt_handler27,interrupt_handler2c
   EXTERN    interrupt_handler0d,interrupt_handler0c
-  EXTERN    str_api
+  EXTERN    os_api
 
 
 [SECTION .text]   ; オブジェクトファイルではコレを書いてからプログラム記述
@@ -254,16 +254,16 @@ farcall :   ; void farcall(int eip, int ct);
   CALL  FAR [ESP+4]
   RET
 
-asm_str_api :  ; void asm_str_api(void);
+asm_os_api :  ; void asm_os_api(void);
   STI
   PUSH  DS
   PUSH  ES
   PUSHAD    ; 保存のためのPUSH
-  PUSHAD    ; str_apiを渡すためのPUSH
+  PUSHAD    ; os_apiを渡すためのPUSH
   MOV   AX,SS
   MOV   DS,AX       ; OS用のセグメントをDSとESにも入れる
   MOV   ES,AX
-  CALL  str_api
+  CALL  os_api
   CMP   EAX,0       ; EAXが0でなければアプリ処理終了
   JNE   asm_end_app
   ADD   ESP,32

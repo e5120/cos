@@ -26,4 +26,4 @@ void asm_interrupt_handler0d(void);
 void asm_interrupt_handler0c(void);
 
 // original application
-void asm_str_api(void);
+void asm_os_api(void);

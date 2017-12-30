@@ -54,6 +54,7 @@ void HariMain(void){
   back_color = COLOR_008484;
   // レイヤー設定
   layer_ctl = layer_control_init(memman, (unsigned char*)binfo->vram, binfo->screen_x, binfo->screen_y);
+  *((int*)0xfe4) = (int)layer_ctl;
   task_a = task_init(memman);
   fifo.task = task_a;
   task_run(task_a, 1, 2);

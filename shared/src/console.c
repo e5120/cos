@@ -315,22 +315,70 @@ void cons_putnstr(CONSOLE *cons, char *s, int n){
   return;
 }
 
-int str_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax){
+int os_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax){
+  int ds_base = *((int*)0xfe8);
   CONSOLE *cons = (CONSOLE*) *((int*)0x0fec);
   TASK *task = task_now();
-  int cs_base = *((int*)0xfe8);
+  LAYER_CTL *layerctl = (LAYER_CTL*)*((int*)0x0fe4);
+  LAYER *layer;
+  int *reg = &eax + 1;   // eaxの次の番地
+  /*
+  保存おためのPUSHADを強引に書き換える
+  reg[0] : EDI,  reg[1] : ESI,  reg[2] : EBP,  reg[3] : ESP
+  reg[4] : EBX,  reg[5] : EDX,  reg[6] : ECX,  reg[7] : EAX
+  */
+
   // edxでapiの切り替え, ebxが文字列の番地, ecxが文字数
   if(edx == 1){
+    // 1文字出力するAPI
     cons_putchar(cons, eax & 0xff, 1);
   }
   else if(edx == 2){
-    cons_putstr(cons, (char*)ebx + cs_base);
+    // 文字列を出力するAPI
+    cons_putstr(cons, (char*)ebx + ds_base);
   }
   else if(edx == 3){
-    cons_putnstr(cons, (char*)ebx + cs_base, ecx);
+    // n文字文字列出力するAPI
+    cons_putnstr(cons, (char*)ebx + ds_base, ecx);
   }
   else if(edx == 4){
     return &(task->tss.esp0);
+  }
+  else if(edx == 5){
+    // ウィンドウを表示するAPI
+    /*
+    edx = 5, ebx = ウィンドウのバッファ, esi = ウィンドウのx方向の大きさ
+    edi = ウィンドウのy方向の大きさ, eax = 透明色, ecx = ウィンドウの名前
+    eax = ウィンドウを操作するための番号(リフレッシュなどに使用)
+    */
+    layer = layer_alloc(layerctl);
+    layer_setbuf(layer, (char*)ebx + ds_base, esi, edi, eax);
+    make_window((char*)ebx + ds_base, esi, edi, (char*)ecx + ds_base, 0);
+    layer_slide(layer, 100, 50);
+    layer_updown(layer, 3);
+    // eaxにアプリに返すレジスタの値を渡す
+    reg[7] = (int)layer;
+  }
+  else if(edx == 6){
+    // ウィンドウへの文字表示API
+    /*
+    edx = 6, ebx = ウィンドウの番号, esi = 表示位置のx座標
+    edi = 表示位置のy座標, eax =　色番号, ecx = 文字列の長さ
+    ebp = 文字列
+    */
+    layer = (LAYER*) ebx;
+    put_string(layer->buf, layer->bxsize, esi, edi, eax, (char*)ebp + ds_base);
+    layer_refresh(layer, esi, edi, esi + ecx * 8, edi + 16);
+  }
+  else if(edx == 7){
+    // 四角形描画API
+    /*
+    edx = 7, ebx = ウィンドウの番号, eax = x, ecx = y
+    esi = width, edi =　height, ebp = 色番号
+    */
+    layer = (LAYER*) ebx;
+    draw_rectangle(layer->buf, layer->bxsize, ebp, eax, ecx, esi, edi);
+    layer_refresh(layer->buf, eax, ecx, eax + esi, ecx + edi);
   }
   return 0;
 }
